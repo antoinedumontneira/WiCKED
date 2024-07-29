@@ -80,7 +80,6 @@ class setup:
         ## the file linefeatures_vac.dat cointains the list of transitions that will be masked during the fit
         linefeatures = self.linefeatures
         if linefeatures == True:
-            pd.read_csv("linefeatures.dat",sep=" ",header=None)
             list_em_lines = pd.read_csv("linefeatures_vac.dat",sep=" ",header=None)[0].values
             self.list_em_lines = list_em_lines*(1+self.redshift)/1.e4 # obs-frame in micron
             self.list_em_lines = np.append(self.list_em_lines,self.wave[peaks])
