@@ -54,7 +54,7 @@ class setup:
         self.min_peak_snr = 3
         self.peak_width = 1
         self.con_model_order = 3
-        self.linefeatures = False ### SET TO TRUE IF YOU WANT TO PASS A .DAT FILE WITH KNOWN EMISSION/ABSORPTION LINES
+        self.linefeatures = None ### PASS A .DAT FILE WITH KNOWN EMISSION/ABSORPTION LINES
     ############################
     ### Functions ############
     ############################
@@ -79,10 +79,13 @@ class setup:
         peaks = find_peaks_cwt(data, min_snr = self.min_peak_snr, widths = self.peak_width)
         ## the file linefeatures_vac.dat cointains the list of transitions that will be masked during the fit
         linefeatures = self.linefeatures
-        if linefeatures == True:
-            list_em_lines = pd.read_csv("linefeatures_vac.dat",sep=" ",header=None)[0].values
-            self.list_em_lines = list_em_lines*(1+self.redshift)/1.e4 # obs-frame in micron
-            self.list_em_lines = np.append(self.list_em_lines,self.wave[peaks])
+        if linefeatures != None:
+            try:
+                list_em_lines = pd.read_csv(linefeatures,sep=" ",header=None)[0].values
+                self.list_em_lines = list_em_lines*(1+self.redshift)/1.e4 # obs-frame in micron
+                self.list_em_lines = np.append(self.list_em_lines,self.wave[peaks])
+            except:
+                print("Could not read LINEFEATURES file, please check.")
         if linefeatures == False:
             self.list_em_lines = self.wave[peaks]
         self.lines_to_be_flagged = [[]]*len(self.list_em_lines)
