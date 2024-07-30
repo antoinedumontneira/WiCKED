@@ -16,14 +16,23 @@ from wicked import Wicked
 run WiCKED.py
 corrector = Wicked(Object_name=sourcename,pathcube=pathcube_input,cube_path=cube_input,redshift=z,jwst_filter=jwst_filter)
 
-#### Load your NIRSpec IFS data
-data = load_your_data_function()
+#### Get center and integrated spectrum templates
+corrector.get_center(do_plots=True)
+corrector.get_reference_spectrum(do_plots=True)
 
-#### Apply the wiggle correction
-corrected_data = corrector.correct(data)
+### Fit Central Pixel
+corrector.FitWigglesCentralPixel()
+### Flag single pixels affected by wiggles
+from FIndWiggles import get_wiggly_pixels,define_affected_pixels
 
-#### Save or analyze your corrected data
-save_corrected_data_function(corrected_data)
+results = get_wiggly_pixels(corrector, N_Cores=NUMBER_OF_CPU,do_plots=True)
+affected_pixels = define_affected_pixels(corrector,results)
+
+#### Apply the wiggle correction to flagged pixels
+from FitWiggles import FitWiggles
+FitWiggles(corrector,affected_pixels,N_Cores=NUMBER_OF_CPU,do_plots=True)
+#### DATA IS SAVED IN SAME FOLDER AS DATACUBE WITH THE _WIGGLECORRECTED EXTENSION
+
 ```
 
 
