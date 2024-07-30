@@ -11,20 +11,20 @@ To flag pixels in the datacube, WiCKED calculates the Fourier Transfrom for the 
 ## Usage Examples
 Detailed examples on how to use WICKED are shown in the jupyter notebooks. Here's a basic example of how to use WICKED:
 from wicked import Wicked
-
-### Initialize the WICKED corrector
+ ```
+#### Initialize the WICKED corrector
 run WiCKED.py
 corrector = Wicked(Object_name=sourcename,pathcube=pathcube_input,cube_path=cube_input,redshift=z,jwst_filter=jwst_filter)
 
-### Load your NIRSpec IFS data
+#### Load your NIRSpec IFS data
 data = load_your_data_function()
 
-### Apply the wiggle correction
+#### Apply the wiggle correction
 corrected_data = corrector.correct(data)
 
-### Save or analyze your corrected data
+#### Save or analyze your corrected data
 save_corrected_data_function(corrected_data)
-
+```
 
 
 ## Features
@@ -39,7 +39,7 @@ git clone https://github.com/yourusername/WICKED.git
 
 ## Dependencies
 WICKED requires the following Python libraries:
-- mgefit
+- cap_mpfit
 - scipy
 - photutils
 - astropy
