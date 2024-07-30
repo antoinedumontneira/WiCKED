@@ -9,20 +9,22 @@ The Moire pattern can be modeled as a series of different sinusoidal waves. WiCK
 To flag pixels in the datacube, WiCKED calculates the Fourier Transfrom for the residual between the best-fit and the single-pixel spectrum with the Fourier Transform of the outer integrated spectrum (which has minimal wiggles due to it's larger integration aperture) and compares them. Pixels that present Moire patterns or wiggles, have significantly higher peaks at frequencies <50 [1/microns]
 
 ## Usage Examples
-Here's a basic example of how to use WICKED:
+Detailed examples on how to use WICKED are shown in the jupyter notebooks. Here's a basic example of how to use WICKED:
 from wicked import Wicked
 
-# Initialize the WICKED corrector
-corrector = Wicked()
+### Initialize the WICKED corrector
+run WiCKED.py
+corrector = Wicked(Object_name=sourcename,pathcube=pathcube_input,cube_path=cube_input,redshift=z,jwst_filter=jwst_filter)
 
-# Load your NIRSpec IFS data
+### Load your NIRSpec IFS data
 data = load_your_data_function()
 
-# Apply the wiggle correction
+### Apply the wiggle correction
 corrected_data = corrector.correct(data)
 
-# Save or analyze your corrected data
+### Save or analyze your corrected data
 save_corrected_data_function(corrected_data)
+
 
 
 ## Features
@@ -43,7 +45,7 @@ WICKED requires the following Python libraries:
 - astropy
 
 ## Credits
-Part of the code that fits the wiggles with many sinusoidal was inspired by the work of M. Perna. You can find their original repository https://github.com/micheleperna/JWST-NIRSpec_wiggles/tree/main.
+Part of the code that models the wiggles with many sinusoidal was inspired by the work of M. Perna. You can find their original repository https://github.com/micheleperna/JWST-NIRSpec_wiggles/tree/main.
 
 ## Contact
 This python package is still under development. For any questions or feedback, please contact me via dumont@mpia.com or open an issue on GitHub.
