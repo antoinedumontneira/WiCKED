@@ -1,4 +1,4 @@
-# WICKED: Wiggle Corrector Kit for NIRSpec Data
+# WICKED: Wiggle Corrector Toolkit for NIRSpec Data
 
 ## Introduction
 WiCKED (**W**iggle **I**nterference **C**orrector **K**it for **N**IRSp**E**c **D**ata) is a python package designed to remove sinusoidal wiggles, also known as Moire patterns, that appear in NIRSpec IFS data. These patterns arise due to the undersampling of the Point Spread Function (PSF).
