@@ -1,10 +1,12 @@
 # WICKED: Wiggle Corrector Kit for NIRSpec Data
 
 ## Introduction
-WICKED (**W**iggle **I**nterference **C**orrector **K**it for **N**IRSp**E**c **D**ata) is a software package designed to remove sinusoidal wiggles, also known as Moire patterns, that appear in NIRSpec IFS data. These patterns arise due to the undersampling of the Point Spread Function (PSF).
+WiCKED (**W**iggle **I**nterference **C**orrector **K**it for **N**IRSp**E**c **D**ata) is a python package designed to remove sinusoidal wiggles, also known as Moire patterns, that appear in NIRSpec IFS data. These patterns arise due to the undersampling of the Point Spread Function (PSF).
 
 ## Overview
-The Moire pattern can be modeled as a series of different sinusoidal waves. WICKED uses a mixture of integrated spectrum templates and power-laws to model single-pixel spectra and fits the residuals with a series of sinusoidal waves to effectively remove these wiggles.
+The Moire pattern can be modeled as a series of different sinusoidal waves. WiCKED uses a two different integrated spectrum templates a power-law and a second degree polynomial to model single-pixel spectra. The residual of the best-fit and the single-pixel spectrum is then fitted  a series of sinusoidal waves plus a constant to effectively remove these wiggles.
+
+To flag pixels in the datacube, WiCKED calculates the Fourier Transfrom for the residual between the best-fit and the single-pixel spectrum with the Fourier Transform of the outer integrated spectrum (which has minimal wiggles due to it's larger integration aperture) and compares them. Pixels that present Moire patterns or wiggles, have significantly higher peaks at frequencies <$50 [1/\mu]$
 
 ## Features
 - **Accurate Moire Pattern Correction**: Models and removes sinusoidal wiggles from NIRSpec IFS data.
