@@ -54,7 +54,8 @@ WICKED requires the following Python libraries:
 - astropy
 
 ## Credits
-Part of the code that models the wiggles with many sinusoidal was inspired by the work of M. Perna. You can find their original repository https://github.com/micheleperna/JWST-NIRSpec_wiggles/tree/main.
+I got the inspiration to use a polynomial fit as a frequency prior for the wiggles from the code by M. Perna You can find their original repository https://github.com/micheleperna/JWST-NIRSpec_wiggles/tree/main. In his code he uses a iterative process to find the best polynimial fit, in my code I simply pass a 5 degree fit that I did with my code based on a M-star, this is good enough for a prior.
+
 
 ## Contact
 This python package is still under development. For any questions or feedback, please contact me via dumont@mpia.com or open an issue on GitHub.
