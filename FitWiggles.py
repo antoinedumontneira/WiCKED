@@ -1,6 +1,7 @@
 ## LIBRARY IMPORTS ####
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.gridspec import GridSpec
 from astropy import constants as k
 from threadpoolctl import threadpool_limits
 from mgefit import cap_mpfit as mpfit
@@ -9,7 +10,7 @@ from astropy.io import fits
 import random as rn
 from photutils.centroids import  centroid_com
 from scipy.optimize import curve_fit
-from scipy.signal import find_peaks_cwt #  peak finder
+from scipy.signal import find_peaks_cwt,find_peaks #  peak finder
 from astropy.stats import sigma_clip # Remove ramaining outliers left by the standard pipeline
 from scipy.fft import fft, fftfreq # Fourier Transform to fin spaxels affected by wiggles
 import multiprocessing
@@ -67,10 +68,13 @@ def get_masked_regions(instance):
     Returns:
        allowed_wavelenghts: array with masked regions, gap + masked lines
     """
-    wave,gap_window,lines_to_be_flagged = instance.wave,instance.gap_window,instance.lines_to_be_flagged
-    allowed_wavelenghts = np.ones(wave.shape,bool)
-    allowed_wavelenghts[ (wave > gap_window[0]) & (wave < gap_window[1]) ] = False # exclude gap
-                        
+    if instance.nrs_detectors == 2:
+        wave,gap_window,lines_to_be_flagged = instance.wave,instance.gap_window,instance.lines_to_be_flagged
+        allowed_wavelenghts = np.ones(wave.shape,bool)
+        allowed_wavelenghts[ (wave > gap_window[0]) & (wave < gap_window[1]) ] = False # exclude gap
+    else:
+        wave,lines_to_be_flagged = instance.wave,instance.lines_to_be_flagged
+        allowed_wavelenghts = np.ones(wave.shape,bool)           
     for iltbf in range(len(lines_to_be_flagged)):
         allowed_wavelenghts[(wave > lines_to_be_flagged[iltbf][0]) & (wave < lines_to_be_flagged[iltbf][1])] = False
     return allowed_wavelenghts
@@ -149,7 +153,7 @@ def power_law_model_fit(wave,flux, masked_regions, do_plots = False) :
     return flux, power_law_flux
 
 
-def power_law_stellar_fit(wavelenght, data,stellar_template,masked_regions,normalize=False):
+def power_law_stellar_fit(wavelenght, data,espec,spec_ref_in,spec_ref_out,masked_regions,normalize=False):
     """ We assume that the fitted spectrum is a combination of the A*reference_sepctrum + B*power-law. 
     This routine finds the weights A and B that best fits the data. 
 
@@ -174,13 +178,12 @@ def power_law_stellar_fit(wavelenght, data,stellar_template,masked_regions,norma
     flux , power_law_template =  power_law_model_fit(wavelenght,data,masked_regions)
     
     def power_law_plus_annular_model(x,A,B,C,d1,d2,d3):
-        stellar_template_depper_lines = stellar_template**2/np.median(stellar_template**2)
-        total_model = A*power_law_template + B*stellar_template +C*stellar_template_depper_lines + d1*x**2 + d2*x + d3
+        total_model = A*power_law_template + B*spec_ref_in +C*spec_ref_out + d1*x**2 + d2*x + d3
         return total_model
     data = np.nan_to_num(data)
     guesses_polynomial = np.polyfit(wavelenght, np.nan_to_num(data), 2)
     guesses = [0.33,0.33,0.33,guesses_polynomial[0],guesses_polynomial[1],guesses_polynomial[2]] ## ASUME EUQAL CONTRIBUTION FROM BOTH TEMPLATES
-    popt,pcov = curve_fit(power_law_plus_annular_model,xdata= wavelenght,ydata=data, p0 = guesses,method='trf', max_nfev = 10000) # need to set max iterations to larger than default else fit fails erroneously 
+    popt,pcov = curve_fit(power_law_plus_annular_model,xdata= wavelenght,ydata=data,sigma=espec,absolute_sigma= True, p0 = guesses,method='trf', max_nfev = 10000) # need to set max iterations to larger than default else fit fails erroneously 
     A_opt,B_opt,C_opt,d1_opt,d2_opt,d3_opt = popt[0],popt[1],popt[2],popt[3],popt[4],popt[5]
 
     power_law_flux_model = power_law_plus_annular_model(wavelenght,A_opt,B_opt,C_opt,d1_opt,d2_opt,d3_opt)
@@ -194,70 +197,32 @@ def make_plots(dictionary,lines_to_be_flagged, gap_window ,x,y):
     wave = dictionary['wave']
     final_model = dictionary['final_model']
     spec_to_be_modelled = dictionary["wiggles_spec"]
-    spec_ref = dictionary["spec_ref"]
+    spec_ref_in = dictionary["spec_ref_in"]
+    spec_ref_out = dictionary["spec_ref_out"]
     power_law_stellar_model = dictionary["pw_law_stellar_model"]
     spec = dictionary["original_spec"]
     spec_corr = dictionary["corrected_spec"]
-    
+    nrs_detectors = 2
+    if gap_window == 1:
+        nrs_detectors = 1
     ########################################
     plt.close('fig')
-    #global fig, ax, bx, cx, wave_um, lines_to_be_flagged, gap_window
+    #global fig, ax, ax, cx, wave_um, lines_to_be_flagged, gap_window
     fig = plt.figure(figsize=(12, 8))
+    gs = GridSpec(3, 1, height_ratios=[1, 0.5, 1])  # The middle subplot will be 1/2 as tall as the others
     fig.subplots_adjust(hspace=0.03)
     #panel with original spectra, and oscillations
-    bx = plt.subplot(2, 1, 1)
-    bx.set_ylim([-.08, 1.2])
+    ax = plt.subplot(3, 1, 1)
+    ax.set_ylim([-.08, 1.2])
+    ax.set_xlim([wave[0], wave[-1]])
+    ax.set_ylabel('flux (a.u.)')
+    ax.set_xticks([])
+    ax.set_title("PIXEL = {} , {}".format(x,y))
+    bx = plt.subplot(3, 1, 2)
+    bx.set_ylim([-.3, 0.3])
     bx.set_xlim([wave[0], wave[-1]])
-    bx.set_ylabel('flux (a.u.)')
-    bx.set_xticks([])
-    bx.set_title("PIXEL = {} , {}".format(x,y))
     #panel with corrected spectrum
-    cx = plt.subplot(2,1,2)
-    cx.set_ylim([-.08, 1.2])
-    cx.set_xlim([wave[0], wave[-1]])
-    cx.set_ylabel('flux (a.u.)')
-    cx.set_xticks([])
-
-    for iltbf in range(len(lines_to_be_flagged)):
-        bx.axvspan(lines_to_be_flagged[iltbf][0], lines_to_be_flagged[iltbf][1], alpha=0.1, color='red')
-        cx.axvspan(lines_to_be_flagged[iltbf][0], lines_to_be_flagged[iltbf][1], alpha=0.1, color='red')
-    bx.axvspan(gap_window[0], gap_window[1], alpha=0.2, color='orange')
-    cx.axvspan(gap_window[0], gap_window[1], alpha=0.2, color='orange')
-    bx.plot(wave, final_model, color = 'purple', alpha = 0.05)
-    bx.plot(wave, spec, label = 'single-spaxel spectrum')
-    bx.plot(wave, power_law_stellar_model, color = 'fuchsia', label = 'Power-law + integrated spectrum model')
-    bx.plot(wave, spec_ref, color = 'orange', label = 'ntegrated spectrum model')
-    bx.plot(wave, spec_to_be_modelled, label = 'wiggles', markersize= 1,color='grey')
-    bx.plot(wave, final_model, label = 'wiggles model',color='red')
-    bx.legend(loc='upper right')
-    cx.plot(wave, spec_corr, color='darkblue', label='corrected single-spaxel spectrum', alpha=0.9)
-    cx.plot(wave, spec_corr - power_law_stellar_model , color='grey', label='residuals', alpha=0.7)
-    cx.legend(loc='upper right')
-    plt.show(block=False)
-    return 
-
-def set_plot_panels(wave,lines_to_be_flagged,gap_window  ):
-    plt.close('fig')
-    #global fig, ax, bx, cx, wave_um, lines_to_be_flagged, gap_window
-    fig = plt.figure(figsize=(12, 8))
-    fig.subplots_adjust(hspace=0.03)
-
-    #panel with frequencies
-    ax = plt.subplot(3,1,3)
-    ax.set_xlim([wave[0],wave[-1]])
-    ax.set_ylim([-9,69])
-    ax.set_xlabel(r'obs.-frame wavelength ($\mu$m)')
-    ax.set_ylabel(r'frequency ($\mu$m$^{-1}$)')
-
-    #panel with original spectra, and oscillations
-    bx = plt.subplot(3, 1, 1)
-    bx.set_ylim([-.08, 1.2])
-    bx.set_xlim([wave[0], wave[-1]])
-    bx.set_ylabel('flux (a.u.)')
-    bx.set_xticks([])
-
-    #panel with corrected spectrum
-    cx = plt.subplot(3,1,2)
+    cx = plt.subplot(3,1,3)
     cx.set_ylim([-.08, 1.2])
     cx.set_xlim([wave[0], wave[-1]])
     cx.set_ylabel('flux (a.u.)')
@@ -265,31 +230,71 @@ def set_plot_panels(wave,lines_to_be_flagged,gap_window  ):
 
     for iltbf in range(len(lines_to_be_flagged)):
         ax.axvspan(lines_to_be_flagged[iltbf][0], lines_to_be_flagged[iltbf][1], alpha=0.1, color='red')
-        bx.axvspan(lines_to_be_flagged[iltbf][0], lines_to_be_flagged[iltbf][1], alpha=0.1, color='red')
+        cx.axvspan(lines_to_be_flagged[iltbf][0], lines_to_be_flagged[iltbf][1], alpha=0.1, color='red')
+    if nrs_detectors == 2 :   
+        ax.axvspan(gap_window[0], gap_window[1], alpha=0.2, color='orange')
+        bx.axvspan(gap_window[0], gap_window[1], alpha=0.2, color='orange')
+        cx.axvspan(gap_window[0], gap_window[1], alpha=0.2, color='orange')
+    ax.plot(wave, spec_ref_in, color = 'k', label = 'Inner Integrated spectrum',alpha=0.5)
+    ax.plot(wave, spec_ref_out, color = 'orange', label = 'Outer Integrated spectrum',alpha=0.5)
+    ax.plot(wave, spec, label = 'single-spaxel spectrum')
+    ax.plot(wave, power_law_stellar_model, color = 'fuchsia', label = 'Best-Fit model',alpha=0.8)
+    ax.legend(loc='upper right',prop={'size': 8}, mode = "expand", ncol = 3)
+    bx.plot(wave, spec_to_be_modelled, label = 'Wiggles', markersize= 1,color='grey')
+    bx.plot(wave, final_model, label = 'Wiggles model',color='red',alpha=0.6)
+    cx.plot(wave, spec_corr - power_law_stellar_model, color='gray', label='Reesidual', alpha=1)
+    cx.plot(wave, spec_corr, color='darkblue', label='Corrected single-pixel spectrum', alpha=1)
+    cx.legend(loc='upper right',prop={'size': 10}, mode = "expand", ncol = 2)
+    plt.show(block=False)
+    return 
+
+def set_plot_panels(wave,lines_to_be_flagged,gap_window  ):
+    plt.close('fig')
+    #global fig, ax, ax, cx, wave_um, lines_to_be_flagged, gap_window
+    fig = plt.figure(figsize=(12, 8))
+    gs = GridSpec(3, 1, height_ratios=[1, 0.5, 1])  # The middle subplot will be 1/2 as tall as the others
+    fig.subplots_adjust(hspace=0.03)
+    nrs_detectors = 2
+    if gap_window == 1:
+        nrs_detectors = 1
+    #panel with frequencies
+    #ax = plt.subplot(3,1,3)
+    #ax.set_xlim([wave[0],wave[-1]])
+    #ax.set_ylim([-9,69])
+    #ax.set_xlabel(r'obs.-frame wavelength ($\mu$m)')
+    #ax.set_ylabel(r'frequency ($\mu$m$^{-1}$)')
+
+    #panel with original spectra and templates
+    ax = plt.subplot(3, 1, 1)
+    ax.set_ylim([-.08, 1.2])
+    ax.set_xlim([wave[0], wave[-1]])
+    ax.set_ylabel('flux (a.u.)')
+    ax.set_xticks([])
+
+    #panel with original spectra and templates
+    bx = plt.subplot(3, 1, 2)
+    bx.set_ylim([-.3, 0.3])
+    bx.set_xlim([wave[0], wave[-1]])
+    bx.set_xticks([])
+
+    #panel with corrected spectrum
+    cx = plt.subplot(3,1,3)
+    cx.set_ylim([-.08, 1.2])
+    cx.set_xlim([wave[0], wave[-1]])
+    cx.set_ylabel('flux (a.u.)')
+    cx.set_xticks([])
+
+    for iltbf in range(len(lines_to_be_flagged)):
+        #ax.axvspan(lines_to_be_flagged[iltbf][0], lines_to_be_flagged[iltbf][1], alpha=0.1, color='red')
+        ax.axvspan(lines_to_be_flagged[iltbf][0], lines_to_be_flagged[iltbf][1], alpha=0.1, color='red')
         cx.axvspan(lines_to_be_flagged[iltbf][0], lines_to_be_flagged[iltbf][1], alpha=0.1, color='red')
 
-    ax.axvspan(gap_window[0], gap_window[1], alpha=0.2, color='orange')
-    bx.axvspan(gap_window[0], gap_window[1], alpha=0.2, color='orange')
-    cx.axvspan(gap_window[0], gap_window[1], alpha=0.2, color='orange')
-    return ax, bx, cx 
-# cos_function 
-def cos_fn(p,x_model):
-    """ Function to model the residual spectrum containing the wiggles. 
+    #ax.axvspan(gap_window[0], gap_window[1], alpha=0.2, color='orange')
+    if nrs_detectors == 2:
+        ax.axvspan(gap_window[0], gap_window[1], alpha=0.2, color='orange')
+        cx.axvspan(gap_window[0], gap_window[1], alpha=0.2, color='orange')
+    return ax,bx, cx 
 
-    Args:
-        p (list): initial guess parameter
-        x_model (array): best fit model + continuum
-
-    Returns:
-        _type_: _description_
-    """
-    ### IGNORE ANOYYING PYTHON WARNINGS
-    warnings.filterwarnings(action='ignore', message='invalid value encountered in divide')
-    warnings.filterwarnings(action='ignore', message='invalid value encountered in scalar divide') 
-    model_freq   = p[0]
-    Amp = p[1]
-    y = Amp * np.cos(2 * np.pi * model_freq * x_model + np.pi/2*p[2]) + p[3]
-    return y
 # cos_function without continuum, for spectrum reconstruction
 def cos_fn_reconstruc(p,x_model):
     """ Cosine function without added "extra" continuum. The best parameters are dereived
@@ -309,23 +314,51 @@ def cos_fn_reconstruc(p,x_model):
     
     model_freq   = p[0]
     Amp = p[1]
-    y = Amp * np.cos(2 * np.pi * model_freq * x_model + np.pi/2*p[2]) + p[3]*0
+    y = Amp * np.cos(2 * np.pi * model_freq * x_model + np.pi/2*p[2])
+    return y
+def cos_fn_reconstruc2(p,x_model):
+    """ Cosine function without added "extra" continuum. The best parameters are dereived
+    using the function cos_fn() which includes a polynomial continuum. This continuum can 
+    produce weird shapes in the continuum of the corrected spectrum, thus we leave it out. 
+
+    Args:
+        p (list): list of best fitted cosine parameters obtained for function cos_fn()
+        x_model (array): best fited cosine function of the wigglers
+
+    Returns:
+        _type_: _description_
+    """
+    ### IGNORE ANOYYING PYTHON WARNINGS
+    warnings.filterwarnings(action='ignore', message='invalid value encountered in divide')
+    warnings.filterwarnings(action='ignore', message='invalid value encountered in scalar divide') 
+    
+    model_freq1 = p[0]
+    model_freq2 = p[1]
+    Amp1 = p[2]
+    Amp2 = p[3]
+
+    y = Amp1 * np.cos(2 * np.pi * model_freq1 * x_model + np.pi/2*p[4]) + Amp2 * np.sin(2 * np.pi * model_freq2 * x_model)
     return y
 def model(p,x_model, x=None , y=None, err=None,  fjac=None):
     ### IGNORE ANOYYING PYTHON WARNINGS
     warnings.filterwarnings(action='ignore', message='invalid value encountered in divide')
     warnings.filterwarnings(action='ignore', message='invalid value encountered in scalar divide') 
-
-    return (y- cos_fn(p,x_model))/err
+    return (y- cos_fn_reconstruc(p,x_model))/err
 
 def chisquare(p,x_model, x, y, err):
     ### IGNORE ANOYYING PYTHON WARNINGS
     warnings.filterwarnings(action='ignore', message='invalid value encountered in divide')
     warnings.filterwarnings(action='ignore', message='invalid value encountered in scalar divide') 
     warnings.filterwarnings(action='ignore', message='divide by zero encountered in scalar divide')
-    mod = cos_fn(p,x_model)
+    mod = cos_fn_reconstruc(p,x_model)
     return np.sum((y-mod)**2/err**2.)
 
+def chisquare_final(mod, y, err):
+    ### IGNORE ANOYYING PYTHON WARNINGS
+    warnings.filterwarnings(action='ignore', message='invalid value encountered in divide')
+    warnings.filterwarnings(action='ignore', message='invalid value encountered in scalar divide') 
+    warnings.filterwarnings(action='ignore', message='divide by zero encountered in scalar divide')
+    return np.sum((y-mod)**2/err**2.)
 def loop_for_fit_wiggles(spec,spec_to_be_modelled,espec,power_law_stellar_model,maxspec,args,iplotF=1):   
     """ Loop section for fitting the wiggles.
 
@@ -341,10 +374,13 @@ def loop_for_fit_wiggles(spec,spec_to_be_modelled,espec,power_law_stellar_model,
     Returns:
         _type_: _description_
     """
-    wave,spec_ref,f_walls,lines_to_be_flagged,gap_window,x_model,N_rep,f0,df0i,bfi,center_spec = args[0],args[1],args[2],args[3],args[4],args[5],args[6],args[7],args[8],args[9],args[10]
-    global best_freq_par,sorted_l_bins_cen,freq_mod_cen
+    wave,spec_ref_in,spec_ref_out,f_walls,lines_to_be_flagged,gap_window,x_model,N_rep,f0,df0i,bfi,center_spec = args[0],args[1],args[2],args[3],args[4],args[5],args[6],args[7],args[8],args[9],args[10],args[11]
+    nrs_detectors = 2
+    if gap_window == 1:
+        nrs_detectors = 1
+    global best_freq_par
     if center_spec == "no":
-        best_freq_par,sorted_l_bins_cen,freq_mod_cen = args[11],args[12], args[13]
+        best_freq_par = args[12]
     # correct_px is set to `r`
     # to repeat the fit as many times as needed to optimise the frequency trend 
     # This loop stops after 1 interation if f_walls is set to 2
@@ -356,52 +392,67 @@ def loop_for_fit_wiggles(spec,spec_to_be_modelled,espec,power_law_stellar_model,
     while correct_px == 'r':
 
         # inizialization
-        final_model = np.zeros((N_rep, spec_ref.size))
-        final_model_plot = np.zeros((N_rep, spec_ref.size))
-        l_bins = []
-        f_bins = []
-
+        final_model = np.zeros((N_rep, spec_ref_in.size))
+        totalL_bins = []
+        totalF_bins = [] 
+        succesful_Nrep = []
         # define the spectrum to be corrected
         if f_walls < 2: 
             if f_walls == 0:
-                print("Fitting routine requires 3 iterationes to achieve a good result. \n")
-            print('iteration n. ', f_walls)
+                print("Constraining frequency trend of wiggles. \n")
         elif f_walls > len(df0i):
             print('too many iterations!')
             break
         
         if (iplotF == 0) & (f_walls==2):
-            #set plot panels
             ax, bx, cx = set_plot_panels(wave, lines_to_be_flagged, gap_window)
-
+        ###### THIS PARTS IS FOR FINDING THE OPTIOMAL WAY OF SPLITTING THE SPECTRUM INTO CHUNKS BASED ON IT'S PEAKS
+        filter_spec = savgol_filter(spec_to_be_modelled,10,3) ### smothing of ~0.02 microns for finding peaks easily
+        if nrs_detectors == 2:
+            filter_spec[(wave > gap_window[0]) & (wave < gap_window[1])] = 0.0  # exclude gap
+        max_peaks, _ = find_peaks(filter_spec, distance=60,height=0.02) ### peaks must be ~ 0.1 microns apart
+        min_peaks, _ = find_peaks(filter_spec*-1, distance=60,height=0.02)
+        combined_peaks = np.sort(np.concatenate([min_peaks,max_peaks]))
         # repeat the fit for N_rep to increase the quality...
         for iN in range(N_rep):
-            Delta = 200  + np.random.randint(-60,200)
-            for i_ch in range(Delta, wave.size + int(Delta / 2), int(Delta / 2)):
-
-                # here I define two masks:
-                # flag_mod, to define the model for the fit, and excluding all emission lines and features
-                # which could affect the quality of the fit;
-                # flag_fit, for the reconstruction of the oscillations with the best-fit results
-                # the latter will present interpolations for the flag_mod masked regions
-                if i_ch >= wave.size:
-                    #pdb.set_trace()
-                    i_ch = wave.size -1
-                    flag_fit = (wave > wave[i_ch -int(Delta/2)]) & (wave < wave[i_ch]) # at long wave, wiggles have higher freq, and we can use smaller ranges.
-                    flag_mod = (wave > wave[i_ch - int(Delta/2)]) & (wave < wave[i_ch])
-                else:
-                    
-                    flag_fit = (wave > wave[i_ch - Delta]) & (wave < wave[i_ch])
-                    #define another array for the modelled oscillations
-                    flag_mod = (wave > wave[i_ch - Delta]) & (wave < wave[i_ch])
-                flag_fit[(wave > gap_window[0]) & (wave < gap_window[1])] = False  # exclude gap
+            l_bins = []
+            f_bins = []
+            peak_selector = np.random.choice([0,1,2])
+            if peak_selector == 0:
+                min_random, max_random =  np.max([(0-int(max_peaks[0])) , 2 ]), (wave.size-1) - max_peaks[-1]
+                random_shift = np.random.randint(min_random/2,max_random/2) ### RANDOMLY CHANGE THE INDEX OF THE PEAK BY ~0.04 MICRONS
+                peaks = (max_peaks + random_shift)
+            if peak_selector == 1:
+                min_random, max_random =  (0-int(min_peaks[0])) , (wave.size-1) - min_peaks[-1]
+                random_shift = np.random.randint(min_random/2,max_random/2) ### RANDOMLY CHANGE THE INDEX OF THE PEAK BY ~0.04 MICRONS
+                peaks = (min_peaks + random_shift)
+            if peak_selector == 2:
+                min_random, max_random =  (0-int(combined_peaks[0]-5)) , (wave.size-1) - combined_peaks[-1]
+                random_shift = np.random.randint(min_random/2,max_random/2) ### RANDOMLY CHANGE THE INDEX OF THE PEAK BY ~0.04 MICRONS
+                peaks = (combined_peaks + random_shift)
+            peaks = np.insert(peaks,0,0) ### ADD FIRST ELEMENT, SO WE CAN FIT BETWEEN THE BEGINNING AND THE 1ST PEAK
                 
+            ##### START THE LOOP TO FIT WIGGLES WITH SIN FUNCTIONS
+            for w_i in np.arange(len(peaks)):                     
+                if (w_i) == len(peaks) - 1: ## FOR THE LAST PEAK IN THE SPECTRUM
+                    if peaks[w_i] >=wave.size:  ## FOR THE LAST PEAK IN THE SPECTRUM
+                        peaks[w_i] = wave.size - 60 #### IF THE RANDOM IND IS LARGER THAN THE WAVE, FIT IN A 60 PIX WINDOWN
+                    flag_fit = (wave > wave[peaks[w_i]]) & (wave < wave[wave.size-1]) 
+                    flag_mod = (wave > wave[peaks[w_i]]) & (wave < wave[wave.size-1])      
+                else: ## FOR THE REST OF THE PEAKS IN THE SPECTRUM      
+                    flag_fit = (wave > wave[peaks[w_i]]) & (wave < wave[peaks[w_i +1]]) 
+                    flag_mod = (wave > wave[peaks[w_i]]) & (wave < wave[peaks[w_i +1]])                                 
+                ### EXCLUDE MAKSED REGIONS FROM THE FITTING WAVELENGHT CHUNK.   
+                if nrs_detectors == 2:
+                    flag_fit[(wave > gap_window[0]) & (wave < gap_window[1])] = False  # exclude gap
                 for iltbf in range(len(lines_to_be_flagged)):
                     flag_mod[(wave > lines_to_be_flagged[iltbf][0]) & (wave < lines_to_be_flagged[iltbf][1])] = False
-                flag_mod[(wave > gap_window[0]) & (wave < gap_window[1])] = False  # exclude gap
+                if nrs_detectors == 2:    
+                    flag_mod[(wave > gap_window[0]) & (wave < gap_window[1])] = False  # exclude gap
                 if np.isnan(wave[flag_mod].mean()) == True :
                     warnings.filterwarnings(action='ignore', message='Mean of empty slice')
                     continue
+                
                 # model params ................................
                 # 
                 p = []
@@ -415,24 +466,19 @@ def loop_for_fit_wiggles(spec,spec_to_be_modelled,espec,power_law_stellar_model,
                     # otherwise, the frequency will be initialised using the parameter defined in the json file
                     p.append([f0,  bfi[0], bfi[1]])
                     
-                p.append([0.09, 0.005, 0.3])    # Amplitude
+                p.append([0.09, 0.001, 0.5])    # Amplitude 1
                 p.append([0.5,  0.005, 0.995])  # phase
-                p.append([0.03, -0.09, 0.09])   # continuum
-
                 parinfo = []
                 parinfo = [{'value': p[i][0], 'fixed': 0, 'limited': [1, 1], 'limits': [p[i][1], p[i][2]]} for i in range(len(p))]
                 # ................................
-
                 fa = {'x_model':x_model[flag_mod],'x': wave[flag_mod], 'y': spec_to_be_modelled[flag_mod], 'err': espec[flag_mod]}
-
                 m = mpfit.mpfit(model, parinfo=parinfo, functkw=fa, ftol=1e-15, xtol=1e-15, quiet=1)
                 if (m.status <= 0):
-                    print ('error message = ', m.errmsg)
-
-                chi2red = chisquare(m.params,x_model[flag_mod], wave[flag_mod], spec_to_be_modelled[flag_mod], espec[flag_mod])/(wave[flag_mod].size - m.params.size)
-
+                    #print ('error message = ', m.errmsg)        
+                    continue
+                best_chi2_mod = chisquare(m.params,x_model[flag_mod], wave[flag_mod], spec_to_be_modelled[flag_mod], espec[flag_mod])/(wave[flag_mod].size - m.params.size)
                 # repeat the fit, with random initializations for the initial parameters
-                for k in range(50): #### ORIGINALLY SET TO 60
+                for k in range(30): #### ORIGINALLY SET TO 60
                     pbin = 20
                     for i in range(len(p)):
                         p[i][0]      = (int(rn.uniform(1, pbin))*(p[i][1]-p[i][2])/pbin +p[i][2]+1e-6)
@@ -440,90 +486,85 @@ def loop_for_fit_wiggles(spec,spec_to_be_modelled,espec,power_law_stellar_model,
                     parinfo = []
                     parinfo = [{'value': p[i][0], 'fixed': 0, 'limited': [1, 1], 'limits': [p[i][1], p[i][2]]} for i in range(len(p))]
                     m0 = mpfit.mpfit(model, parinfo=parinfo, functkw=fa, ftol=1e-15, xtol=1e-15, quiet=1)
+                    
+                    chi2_mod_new = chisquare(m0.params,x_model[flag_mod], wave[flag_mod], spec_to_be_modelled[flag_mod], espec[flag_mod])/(wave[flag_mod].size - m0.params.size)
 
-                    chi2red_new = chisquare(m0.params,x_model[flag_mod], wave[flag_mod], spec_to_be_modelled[flag_mod], espec[flag_mod])/(wave[flag_mod].size - m0.params.size)
-
-                    if chi2red_new < chi2red:
+                    if chi2_mod_new < best_chi2_mod:
                         m = m0
-                        chi2red = chi2red_new
+                        best_chi2_mod = chi2_mod_new
 
                     final_model[iN][flag_fit] = cos_fn_reconstruc(m.params,x_model[flag_fit])
-                    final_model_plot[iN][flag_fit] = cos_fn(m.params,x_model[flag_fit])
                 if (f_walls == 2) & (iplotF == 0):
-                    bx.plot(wave[flag_mod], spec_to_be_modelled[flag_mod], 'x', markersize=0.3,color='grey')
+                    ax.plot(wave[flag_mod], spec_to_be_modelled[flag_mod], 'x', markersize=0.3,color='grey')
                 l_bins.append(wave[flag_mod].mean())
                 f_bins.append(m.params[0])
-                if i_ch == wave.size -1: i_ch +=1 # to avoid repetion of last step in the loop
-
-
+                #if i_ch == wave.size -1: i_ch +=1 # to avoid repetion of last step in the loop
+            if iN <=1 :  ## SET REFERENCE FOR A CHI2 FOR THE WHOLE WIGGLE SPECTRUM
+                best_chi2 =  chisquare_final(final_model[0,:],spec_to_be_modelled,espec)
+            else:
+                #### HERE IT WILL COMPARE EACH LOOP MODEL AND ONLY SAVE THE ONES WITH BEST CHI2.
+                #### ALSO TRAIN THE FREQUENCY TREND BASED ON THOSE MODELS. 
+                loop_chi2 = chisquare_final(final_model[iN],spec_to_be_modelled,espec)            
+                if (len(l_bins)>0) & (loop_chi2<=(best_chi2 + 0.01*best_chi2)):    
+                    succesful_Nrep.append(iN)
+                    #best_chi2 = loop_chi2
+                    for i in np.arange(len(l_bins)):
+                        totalL_bins.append(l_bins[i])
+                        totalF_bins.append(f_bins[i])
+                    inds = np.array(totalL_bins).argsort()
+                    sorted_f_bins = np.array(totalF_bins)[inds]
+                    sorted_l_bins = np.array(totalL_bins)[inds]
+                    mask_freq_channels = np.ones_like(sorted_l_bins, dtype='bool')
+                    if nrs_detectors == 2:
+                        mask_freq_channels[(sorted_l_bins > gap_window[0]) & (sorted_l_bins < gap_window[1])] = False
+                    freq_par = np.polyfit(sorted_l_bins[mask_freq_channels],sorted_f_bins[mask_freq_channels] , 3)
+                    freq_mod = np.poly1d(freq_par)(np.array(sorted_l_bins))
+                    best_freq_par = freq_par
+                
             if (iplotF == 0) & (f_walls==2) : 
                 if (iN == 0):
-                    bx.plot(wave, spec, label = 'single-spaxel spectrum')
-                    bx.plot(wave, power_law_stellar_model, color = 'fuchsia', label = 'Power-law + integrated spectrum model')
-                    bx.plot(wave, spec_ref, color = 'orange', label = 'ntegrated spectrum model')
-                    bx.plot(wave, spec_to_be_modelled, label = 'wiggles', markersize= 1,color='grey')
-                bx.plot(wave, final_model[iN], color = 'purple', alpha = 0.05)
+                    ax.plot(wave[flag_mod], spec_to_be_modelled[flag_mod], 'x', markersize=0.3,color='grey',label="Wiggles [for the model]")
+                    ax.plot(wave, spec_ref_in, color = 'k', label = 'Inner Integrated spectrum',alpha=0.5)
+                    ax.plot(wave, spec_ref_out, color = 'orange', label = 'Outer Integrated spectrum',alpha=0.5)
+                    ax.plot(wave, spec, label = 'Single-spaxel spectrum')
+                    ax.plot(wave, power_law_stellar_model, color = 'fuchsia', label = 'Best-Fit model',alpha=0.8)
+                    bx.plot(wave, spec_to_be_modelled, label = 'Wiggles', markersize= 1,color='grey')
+                    bx.plot(wave[max_peaks],spec_to_be_modelled[max_peaks],"X",c="green", markersize=5)
+                    bx.plot(wave[min_peaks],spec_to_be_modelled[min_peaks],"X",c="limegreen", markersize=5)
+                    
 
-
-        l_bins = np.array(l_bins)
-        f_bins = np.array(f_bins)
-
-        inds = l_bins.argsort()
-        sorted_f_bins = f_bins[inds]
-        sorted_l_bins = l_bins[inds]
-        # here I mask the wave channels close to the gap between detectors, and close to Ha emission,
-        # where the fit is more difficult and the frequencies may significantly vary from the general trend
-        mask_freq_channels = np.ones_like(sorted_l_bins, dtype='bool')
-        mask_freq_channels[(sorted_l_bins > gap_window[0]) & (sorted_l_bins < gap_window[1])] = False
-
-        freq_par = np.polyfit(sorted_l_bins[mask_freq_channels],sorted_f_bins[mask_freq_channels] , 5)
-        freq_mod = np.poly1d(freq_par)(np.array(sorted_l_bins))
-
-        if (iplotF == 0)  & (f_walls==2) : 
-            ax.plot(sorted_l_bins, sorted_f_bins, 'o', markersize=3, label = 'best-fit frequency')
-            ax.plot(sorted_l_bins, freq_mod, 'black', label = 'polynomial fit')
+        best_wiggle_model = savgol_filter(np.nanmedian(final_model, axis=0),5,3 ) #np.nanmedian(final_model, axis=0)
         
-        if center_spec == "yes":
-            freq_mod_cen = freq_mod + 0
-            sorted_l_bins_cen = sorted_l_bins + 0
-            
-        spec_corr = spec - np.nanmean(final_model, axis=0) #+ model_con
+        spec_corr = spec -  best_wiggle_model#np.nanmean(final_model, axis=0) # Substract WIGGLE MODEL (COSINE) WITHOUT CONTINUUM
         if (iplotF == 0) & (f_walls==2): 
-            
-            ax.plot(sorted_l_bins, np.interp(sorted_l_bins,sorted_l_bins_cen,freq_mod_cen), alpha = 0.5)
-            bx.plot(wave, np.mean(final_model_plot,axis=0),  label = 'model', color = 'red')
+            ax.legend(loc='upper right', prop={'size': 8}, mode = "expand", ncol = 3)
+            bx.plot(wave,best_wiggle_model, color = 'red',label="Wiggle Model" ,alpha = 0.6)
+            bx.plot(wave,np.zeros(wave.size),"k--")
             bx.legend(loc='upper right')
-            cx.plot(wave, spec_corr, color='darkblue', label='corrected single-spaxel spectrum', alpha=0.9)
-            cx.plot(wave, spec_corr - power_law_stellar_model, color='grey', label='residuals', alpha=0.7)
-            cx.legend(loc='upper right')
-
+            cx.plot(wave, spec_corr - power_law_stellar_model, color='gray', label='Residual', alpha=1)
+            cx.plot(wave, spec_corr, color='darkblue', label='Corrected single-spaxel spectrum', alpha=0.9)
+            cx.legend(loc='upper right',prop={'size': 10}, mode = "expand", ncol = 2)
             plt.show(block=False)
 
-        if f_walls == 0: #only for central spaxel spectrum
-            update_freq_par = 'y' #input('To update the reference trend for frequency, enter `y`')
-            if update_freq_par == 'y':
-                best_freq_par = freq_par
-
-
         if f_walls != 2:
-            #print('Note that a few iterations might be required to decrease the scatter in the 3rd panel')
-            print('ITERATION {} OF 2 FINISHED'.format(f_walls))            
+            print('ITERATION {} OF 2 FINISHED'.format(f_walls+1))            
             correct_px = 'r' ### BY DEFAULT IT WILL RE ITERATE OVER TO GET A BETTER FIT
         else:
             correct_px = 'y' # with f_walls = 2 we directly fit the oscillations with solid constraints, and correct for them without looking at results
             
-        f_walls += 1
+        f_walls += 2
 
         if correct_px == 'y':
             if center_spec == "yes":
-                return spec_corr*maxspec, best_freq_par, sorted_l_bins_cen, freq_mod_cen
+                return spec_corr*maxspec, best_freq_par
             else:
-                return spec_corr*maxspec , {"wave":wave,"wiggles_spec":spec_to_be_modelled,"spec_ref":spec_ref,"pw_law_stellar_model":power_law_stellar_model,
-                                                "original_spec":spec,"corrected_spec":spec_corr,"final_model":np.mean(final_model_plot,axis=0),
+                return spec_corr*maxspec , {"wave":wave,"wiggles_spec":spec_to_be_modelled,"spec_ref_in":spec_ref_in,"spec_ref_out":spec_ref_out,"pw_law_stellar_model":power_law_stellar_model,
+                                                "original_spec":spec,"corrected_spec":spec_corr,"final_model":best_wiggle_model
                                                 }
     return
 
-def FitWiggles(self,affected_pixels,nuc_y=None,nuc_x=None,N_rep=15,N_Cores=1,do_plots=False):
+
+def fitwiggles(self,affected_pixels,nuc_y=None,nuc_x=None,N_rep=15,N_Cores=1,do_plots=False):
     """ Main function to substract wiggles from NIRSpec cube. 
     This function prepares the spectrum for the pixels that have been flaged as affected by wiggles 
     with the function "define_affected_pixels()" and will find the best fit parameters with 
@@ -541,23 +582,24 @@ def FitWiggles(self,affected_pixels,nuc_y=None,nuc_x=None,N_rep=15,N_Cores=1,do_
     #### GET GLOBAL PARAMETERS FOR THE FITTING ######
     dt = self.wave[1] - self.wave[0]
     x_model = np.arange(self.wave.size)*dt
-    f0 = self.f0
+    f0 = self.frequency_prior
     df0i = self.df0i
     bfi = self.bfi
     con_windows = self.con_windows
     con_model_order = self.con_model_order
-    spec_ref = self.spec_ref
+    spec_ref_in = self.spec_ref_in
+    spec_ref_out = self.spec_ref_out
     wave = self.wave
-    f_walls = 0
     lines_to_be_flagged = self.lines_to_be_flagged
-    gap_window = self.gap_window
+    if self.nrs_detectors == 2:
+        gap_window = self.gap_window
+    else:
+        gap_window = self.nrs_detectors
     masked_lines = get_masked_regions(self)
     best_freq_par = self.best_freq_par
-    sorted_l_bins_cen = self.sorted_l_bins_cen
-    freq_mod_cen = self.freq_mod_cen
     f_walls = 2
     center_spec = "no"
-    args = [wave,spec_ref,f_walls,lines_to_be_flagged,gap_window,x_model,N_rep,f0,df0i ,bfi,center_spec,best_freq_par, sorted_l_bins_cen, freq_mod_cen]
+    args = [wave,spec_ref_in,spec_ref_out,f_walls,lines_to_be_flagged,gap_window,x_model,N_rep,f0,df0i ,bfi,center_spec,best_freq_par]
     sorted_lf_bins = self.sorted_lf_bins
     #############################################################################
     ### RUN FOR REST OF FLAGGED SPAXELS ########
@@ -587,6 +629,7 @@ def FitWiggles(self,affected_pixels,nuc_y=None,nuc_x=None,N_rep=15,N_Cores=1,do_
         except:
             print("could not get a fit. skipping this pixel")
             continue
+
     if do_plots:
         for i in range(len(PLOTS)):
             make_plots(PLOTS[i],lines_to_be_flagged,gap_window,tasks[i][2],tasks[i][1])
