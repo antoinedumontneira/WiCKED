@@ -44,7 +44,7 @@ FitWiggles(corrector,affected_pixels,N_Cores=NUMBER_OF_CPU,do_plots=True)
 ## Installation
 To install WICKED, clone the repository on you local folder. There is no installation required for WiCKED, and example jupyter notebooks are also attached to the github repository showing how to run it. 
 
-git clone https://github.com/yourusername/WICKED.git
+git clone https://github.com/antoinedumontneira/WiCKED.git
 
 ## Dependencies
 WICKED requires the following Python libraries:
