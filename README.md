@@ -1,4 +1,4 @@
-# WICKED: Wiggle Corrector Toolkit for NIRSpec Data
+# WICKED: Wiggle Corrector Toolkit for nirspEc Data
 
 ## Introduction
 WiCKED (**W**iggle **I**nterference **C**orrector tool**K**it for **N**IRSp**E**c **D**ata) is a python package designed to remove sinusoidal wiggles, also known as Moire patterns, that appear in NIRSpec IFS data. These patterns arise due to the undersampling of the Point Spread Function (PSF).
@@ -54,8 +54,9 @@ WICKED requires the following Python libraries:
 - astropy
 
 ## Credits
-I got the inspiration to use a polynomial fit as a frequency prior for the wiggles from the code by M. Perna You can find their original repository https://github.com/micheleperna/JWST-NIRSpec_wiggles/tree/main. In his code he uses a iterative process to find the best polynimial fit, in my code I simply pass a 5 degree fit that I did with my code based on a M-star, this is good enough for a prior.
+
+I got the inspiration to use a polynomial fit to characterize the frequency trend of Wiggles from the code by M. Perna. You can find their original repository [here](https://github.com/micheleperna/JWST-NIRSpec_wiggles/tree/main). Their code fits a polynomial to the frequency of wiggles at different wavelengths for the central and brightest pixel in the datacube, and then uses this as a prior for the rest of the pixels. I use a similar approach, but the polynomial is also tuned based on a chi-square fit for each pixel, since wiggles in different pixels sometimes have different frequencies.
 
 
 ## Contact
-This python package is still under development. For any questions or feedback, please contact me via dumont@mpia.com or open an issue on GitHub.
+This python package is still under development. For any questions or feedback, please contact me via dumont@mpia.com. 
