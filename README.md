@@ -6,7 +6,7 @@ WiCKED (**W**iggle **I**nterference **C**orrector tool**K**it for **N**IRSp**E**
 ## Overview
 The Moire pattern can be modeled as a series of different sinusoidal waves. WiCKED uses a two different integrated spectrum templates a power-law and a second degree polynomial to model single-pixel spectra. The residual of the best-fit and the single-pixel spectrum is then fitted  a series of sinusoidal waves plus a constant to effectively remove these wiggles.
 
-To flag pixels in the datacube, WiCKED calculates the Fourier Transfrom for the residual between the best-fit and the single-pixel spectrum with the Fourier Transform of the outer integrated spectrum (which has minimal wiggles due to it's larger integration aperture) and compares them. Pixels that present Moire patterns or wiggles, have significantly higher peaks at frequencies <50 [1/microns]
+To flag pixels affected by wiggles in the datacube, WiCKED calculates the Fourier Transfrom for the residual between the best-fit and the single-pixel spectrum and compares the mean amplitude at frequency were wiggles dominate (tipically f < 50 [1/micron]) and at longer wavelenghts. Pixels with a larger ratio between these two windows are flagged. The typical frequency of the wiggles is calculated based on the wiggles of the brightest pixel. 
 
 ## Usage Examples
 Detailed examples on how to use WICKED are shown in the jupyter notebooks. Here's a basic example of how to use WICKED:
