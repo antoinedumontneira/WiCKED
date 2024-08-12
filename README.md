@@ -59,4 +59,4 @@ I got the inspiration to use a polynomial fit to characterize the frequency tren
 
 
 ## Contact
-This python package is still under development. For any questions or feedback, please contact me via dumont@mpia.com. 
+This python package is still under development. For any questions or feedback, please contact me via dumont (at) mpia.de
