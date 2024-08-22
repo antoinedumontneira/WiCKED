@@ -410,8 +410,8 @@ def loop_for_fit_wiggles(spec,spec_to_be_modelled,espec,power_law_stellar_model,
         filter_spec = savgol_filter(spec_to_be_modelled,10,3) ### smothing of ~0.02 microns for finding peaks easily
         if nrs_detectors == 2:
             filter_spec[(wave > gap_window[0]) & (wave < gap_window[1])] = 0.0  # exclude gap
-        max_peaks, _ = find_peaks(filter_spec, distance=60,height=0.02) ### peaks must be ~ 0.1 microns apart
-        min_peaks, _ = find_peaks(filter_spec*-1, distance=60,height=0.02)
+        max_peaks, _ = find_peaks(filter_spec, distance=60,height=np.std(filter_spec)*0.1) ### peaks must be ~ 0.1 microns apart
+        min_peaks, _ = find_peaks(filter_spec*-1, distance=60,height=np.std(filter_spec)*0.1)
         combined_peaks = np.sort(np.concatenate([min_peaks,max_peaks]))
         # repeat the fit for N_rep to increase the quality...
         for iN in range(N_rep):
@@ -637,7 +637,7 @@ def fitwiggles(self,affected_pixels,nuc_y=None,nuc_x=None,N_rep=15,N_Cores=1,do_
     ############ WRITE RESULTS ON DATA CUBE ########################################
     print("ADDING CORRECTED SPECTRA TO DATA CUBE \n")
     # read data cube 
-    cube_output = self.pathcube_input + self.cube_input[:-5] + '_wigglycorrected.fits'
+    cube_output = self.pathcube_input + self.cube_input[:-5] + '_wicked.fits'
     hdu_01  = fits.open(self.pathcube_input + self.cube_input)
     for i in range(len(sorted_lf_bins)):
         hdu_01[1].data[:,sorted_lf_bins[i][1],sorted_lf_bins[i][0]] = sorted_lf_bins[i][2]

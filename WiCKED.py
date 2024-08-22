@@ -27,27 +27,32 @@ class WICKED:
     - jwst_filter : name of NIRSpec filter ('f170lp' or 'f290lp')
     - nrs_detectors: 1 or 2. Number of NRS detectors in the data, i.e nrs1 & nrs2 or only one. 
     """
-    def __init__(self, Object_name,pathcube, cube_path,redshift,jwst_filter,nrs_detectors=2):
-        self.Object_name = Object_name
+    def __init__(self,pathcube, cube_path,redshift):
         self.redshift = redshift
-        self.jwst_filter = jwst_filter
         self.pathcube_input = pathcube
         self.cube_input = cube_path
-        self.output_name = 'wiggle_corrected'
-        self.nrs_detectors = nrs_detectors
-        if self.jwst_filter == 'f170lp':
-            if self.nrs_detectors == 2:
-                self.gap_window = [2.39, 2.475]
-            self.good_continuum = [[1.7,2.36],[2.5,3.15]] ## Default, excludes only instrument gap and edges
-        if self.jwst_filter == 'f290lp':
-            if self.nrs_detectors == 2:
-                self.gap_window = [3.99, 4.16]
-            self.good_continuum = [[2.88,3.98],[4.2,5.26]] ###  Default, excludes only instrument gap
         # read data cube 
         hdu_01  = fits.open(self.pathcube_input + self.cube_input)
         self.cube = (hdu_01[1].data)
         self.ecube = (hdu_01[2].data)
         self.wave= ( hdu_01[1].header['CRVAL3']+ hdu_01[1].header['CDELT3']*np.arange(0, hdu_01[1].header['NAXIS3'])) #um
+        self.jwst_filter = hdu_01[0].header["FILTER"]
+        if hdu_01[0].header["DETECTOR"] == 'MULTIPLE':
+            self.nrs_detectors = 2
+        else:
+            self.nrs_detectors = 1
+        if self.jwst_filter == 'F100LP':
+            if self.nrs_detectors == 2:
+                self.gap_window = [1.435, 1.475]
+            self.good_continuum = [[1.02,1.42],[1.5,1.86]] ## Default, excludes only instrument gap and edges
+        if self.jwst_filter == 'F170LP':
+            if self.nrs_detectors == 2:
+                self.gap_window = [2.39, 2.475]
+            self.good_continuum = [[1.7,2.36],[2.5,3.15]] ## Default, excludes only instrument gap and edges
+        if self.jwst_filter == 'F290LP':
+            if self.nrs_detectors == 2:
+                self.gap_window = [3.99, 4.16]
+            self.good_continuum = [[2.88,3.98],[4.2,5.26]] ###  Default, excludes only instrument gap       
         if self.nrs_detectors == 2:
             self.gap_mask = ~((self.wave > self.gap_window[0]) & (self.wave < self.gap_window[1]))
         # frequency parameters
