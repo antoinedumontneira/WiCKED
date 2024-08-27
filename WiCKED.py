@@ -65,6 +65,9 @@ class WICKED:
         self.peak_width = 1
         self.con_model_order = 3
         self.linefeatures = None ### PASS A .DAT FILE WITH KNOWN EMISSION/ABSORPTION LINES, must be a .dat file with 1 column lines in angstrom(vacuum) and the next with their names
+        ### create empty arrays for flagged pixels
+        self.exclude_pixels = None
+        self.add_pixels = None
     ############################
     ### Functions ############
     ############################

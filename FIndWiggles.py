@@ -86,8 +86,8 @@ def fit_wiggly_spaxels(freq_range,wave,data,masked_lines,con_windows,model_spaxe
         short_freq_mask_nrs1_2 = ( max_freq/2 < xf_nrs1) & ( xf_nrs1 <= max_freq)
         short_freq_mask_nrs2_1 = ( min_freq <= xf_nrs2) & ( xf_nrs2 <= max_freq/2)
         short_freq_mask_nrs2_2 = ( max_freq/2 < xf_nrs2) & ( xf_nrs2 <= max_freq)
-        large_freq_mask_nrs1 = ( max_freq < xf_nrs1) & ( xf_nrs1 <= 150)
-        large_freq_mask_nrs2 = ( max_freq < xf_nrs2) & ( xf_nrs2 <= 150)
+        large_freq_mask_nrs1 = ( (max_freq + 15) < xf_nrs1) & ( xf_nrs1 <= 150)
+        large_freq_mask_nrs2 = ( (max_freq + 15) < xf_nrs2) & ( xf_nrs2 <= 150)
         
         # HERE I DECIDE IN WHICH NRS DETECTOR WIGGLES ARE MORE PROMINENT  
         mean_ampl_pixel_nrs1_1  =  np.nanmean( (2.0/N_nrs1 * np.abs(yf_spaxel_nrs1[0:N_nrs1//2]) )[short_freq_mask_nrs1_1] )
@@ -127,7 +127,7 @@ def fit_wiggly_spaxels(freq_range,wave,data,masked_lines,con_windows,model_spaxe
         min_freq, max_freq = np.max([freq_range[0],5]), np.min([freq_range[1],50])  ### USUALLY FREQ < 5 is just noise
         short_freq_mask_1 = ( min_freq <= xf) & ( xf <= max_freq/2)
         short_freq_mask_2 = ( max_freq/2 < xf) & ( xf <= max_freq)
-        large_freq_mask = ( max_freq < xf) & ( xf <= 150)
+        large_freq_mask = ( (max_freq + 15) < xf) & ( xf <= 200)  ### Arbitarly add 15 [1/mu] as a buffer zone to sometimes avoid Broad features (emission/absorption)
         mean_ampl_large_freq  = np.mean( 2.0/N * np.abs(yf_spaxel[0:N//2])[large_freq_mask] )
         mean_ampl_large_freq_std = np.std( 2.0/N * np.abs(yf_spaxel[0:N//2])[large_freq_mask] )
         #
@@ -162,7 +162,7 @@ def fit_wiggly_spaxels(freq_range,wave,data,masked_lines,con_windows,model_spaxe
         ax2.hlines(one_sigma_level ,min(xf),max(xf),color='green',linestyles='dashed',label='1 sigma enhancement')
         ax2.hlines(spaxel_level ,min(xf),max(xf),color=color_mean,linestyles='solid')
         ax2.axvspan(min_freq, max_freq, alpha=0.15, color='r',label="Wiggle frequency regime")
-        ax2.set_xlim(5,100)
+        ax2.set_xlim(5,150)
         ax2.set_ylim(mean_ampl_large_freq-mean_ampl_large_freq,spaxel_level+spaxel_level)
         ax2.set_xlabel(r'frequency [$\mu m^{-1}$]')
         ax2.legend()
@@ -325,6 +325,17 @@ def define_affected_pixels(self,results, threshold=3,save_file=False):
     """
     nuc_x,nuc_y = self.nuc_x,self.nuc_y 
     affected_pixels_mask =  results[2]  >= threshold
+    #### ADD OR EXCLUDE PIXELS DEFINE BY THE USE ###
+    if self.add_pixels !=None:
+        self.add_pixels = np.array(self.add_pixels)
+        for ind in range(len(self.add_pixels)):
+            new_pix = np.where((results[1] == self.add_pixels[ind,0]) & ((results[0] == self.add_pixels[ind,1])))[0]
+            affected_pixels_mask[new_pix] = True
+    if self.exclude_pixels !=None:
+        self.exclude_pixels = np.array(self.exclude_pixels)
+        for ind in range(len(self.exclude_pixels)):
+            new_pix = np.where((results[1] == self.exclude_pixels[ind,0]) & ((results[0] == self.exclude_pixels[ind,1])))[0]
+            affected_pixels_mask[new_pix] = False
     fig = plt.figure(figsize=(7,7))
     im = plt.scatter(results[1], results[0] ,c=affected_pixels_mask,s=100,marker='s')
     plt.scatter(self.nuc_x,self.nuc_y,marker="X",s=30,color="red" )

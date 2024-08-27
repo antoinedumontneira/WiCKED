@@ -648,4 +648,3 @@ def fitwiggles(self,affected_pixels,nuc_y=None,nuc_x=None,N_rep=15,N_Cores=1,do_
     print('\n FINISHED!')
     hdu_01.close()
     return
-
