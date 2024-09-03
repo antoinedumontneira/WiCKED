@@ -86,8 +86,8 @@ def fit_wiggly_spaxels(freq_range,wave,data,masked_lines,con_windows,model_spaxe
         short_freq_mask_nrs1_2 = ( max_freq/2 < xf_nrs1) & ( xf_nrs1 <= max_freq)
         short_freq_mask_nrs2_1 = ( min_freq <= xf_nrs2) & ( xf_nrs2 <= max_freq/2)
         short_freq_mask_nrs2_2 = ( max_freq/2 < xf_nrs2) & ( xf_nrs2 <= max_freq)
-        large_freq_mask_nrs1 = ( (max_freq + 15) < xf_nrs1) & ( xf_nrs1 <= 150)
-        large_freq_mask_nrs2 = ( (max_freq + 15) < xf_nrs2) & ( xf_nrs2 <= 150)
+        large_freq_mask_nrs1 = ( (max_freq + 15) < xf_nrs1) & ( xf_nrs1 <= (max_freq + 15) + 100)
+        large_freq_mask_nrs2 = ( (max_freq + 15) < xf_nrs2) & ( xf_nrs2 <= (max_freq + 15) + 100)
         
         # HERE I DECIDE IN WHICH NRS DETECTOR WIGGLES ARE MORE PROMINENT  
         mean_ampl_pixel_nrs1_1  =  np.nanmean( (2.0/N_nrs1 * np.abs(yf_spaxel_nrs1[0:N_nrs1//2]) )[short_freq_mask_nrs1_1] )
@@ -127,7 +127,7 @@ def fit_wiggly_spaxels(freq_range,wave,data,masked_lines,con_windows,model_spaxe
         min_freq, max_freq = np.max([freq_range[0],5]), np.min([freq_range[1],50])  ### USUALLY FREQ < 5 is just noise
         short_freq_mask_1 = ( min_freq <= xf) & ( xf <= max_freq/2)
         short_freq_mask_2 = ( max_freq/2 < xf) & ( xf <= max_freq)
-        large_freq_mask = ( (max_freq + 15) < xf) & ( xf <= 200)  ### Arbitarly add 15 [1/mu] as a buffer zone to sometimes avoid Broad features (emission/absorption)
+        large_freq_mask = ( (max_freq + 15) < xf) & ( xf <= (max_freq + 15) + 100)  ### Arbitarly add 15 [1/mu] as a buffer zone to sometimes avoid Broad features (emission/absorption)
         mean_ampl_large_freq  = np.mean( 2.0/N * np.abs(yf_spaxel[0:N//2])[large_freq_mask] )
         mean_ampl_large_freq_std = np.std( 2.0/N * np.abs(yf_spaxel[0:N//2])[large_freq_mask] )
         #
