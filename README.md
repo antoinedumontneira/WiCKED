@@ -58,7 +58,7 @@ WICKED requires the following Python libraries:
 I got the inspiration to use a polynomial fit to characterize the frequency trend of Wiggles from the code by M. Perna. You can find their original repository [here](https://github.com/micheleperna/JWST-NIRSpec_wiggles/tree/main). Their code fits a polynomial to the frequency of wiggles at different wavelengths for the central and brightest pixel in the datacube, and then uses this as a prior for the rest of the pixels. I use a similar approach, but the polynomial is also tuned based on a chi-square fit for each pixel, since wiggles in different pixels sometimes have different frequencies.
 
 ## Citation
-A full description of WICKED will be presented in the paper ''dumont et al 2024 (in prep.)}''
+A full description of WICKED will be presented in the paper *dumont et al 2024 (in prep.)*
 
 ## Contact
 This python package is still under development. For any questions or feedback, please contact me via dumont (at) mpia.de
