@@ -138,8 +138,6 @@ def power_law_model_fit(wave,flux, masked_regions, do_plots = False) :
     power_law_guess = power_law(wave_for_model, guesses[0], guesses[1], guesses[2])
     popt,pcov = curve_fit(power_law, wave_for_model,flux_for_model, p0 = guesses,  method='trf', max_nfev = 10000) # need to set max iterations to larger than default else fit fails erroneously 
     a1_opt,b1_opt,c_opt = popt[0],popt[1],popt[2]
-    #perr = np.sqrt(np.diag(pcov))
-    #a_err,b_err,c_err = perr
     power_law_flux = power_law(wave,a1_opt,b1_opt,c_opt)
     if do_plots:
         plt.figure(figsize=(10,8))
@@ -257,12 +255,6 @@ def set_plot_panels(wave,lines_to_be_flagged,gap_window  ):
     nrs_detectors = 2
     if gap_window == 1:
         nrs_detectors = 1
-    #panel with frequencies
-    #ax = plt.subplot(3,1,3)
-    #ax.set_xlim([wave[0],wave[-1]])
-    #ax.set_ylim([-9,69])
-    #ax.set_xlabel(r'obs.-frame wavelength ($\mu$m)')
-    #ax.set_ylabel(r'frequency ($\mu$m$^{-1}$)')
 
     #panel with original spectra and templates
     ax = plt.subplot(3, 1, 1)
@@ -381,8 +373,6 @@ def loop_for_fit_wiggles(spec,spec_to_be_modelled,espec,power_law_stellar_model,
     global best_freq_par
     if center_spec == "no":
         best_freq_par = args[12]
-    # correct_px is set to `r`
-    # to repeat the fit as many times as needed to optimise the frequency trend 
     # This loop stops after 1 interation if f_walls is set to 2
     ### IGNORE ANOYYING PYTHON WARNINGS
     warnings.filterwarnings(action='ignore', message='invalid value encountered in divide')
@@ -454,12 +444,9 @@ def loop_for_fit_wiggles(spec,spec_to_be_modelled,espec,power_law_stellar_model,
                     continue
                 
                 # model params ................................
-                # 
                 p = []
                 # frequency
                 try:
-                    # if already defined in a previous fit, the frequency will be initialised using the 
-                    # trend fw(lambda) shown in the 3rd panel of the figure below
                     f0 = np.poly1d(best_freq_par)(wave[flag_mod].mean())
                     p.append([np.max([f0,5]), np.max([f0-df0i[f_walls],5]), f0 + df0i[f_walls]])
                 except NameError:
@@ -474,7 +461,6 @@ def loop_for_fit_wiggles(spec,spec_to_be_modelled,espec,power_law_stellar_model,
                 fa = {'x_model':x_model[flag_mod],'x': wave[flag_mod], 'y': spec_to_be_modelled[flag_mod], 'err': espec[flag_mod]}
                 m = mpfit.mpfit(model, parinfo=parinfo, functkw=fa, ftol=1e-15, xtol=1e-15, quiet=1)
                 if (m.status <= 0):
-                    #print ('error message = ', m.errmsg)        
                     continue
                 best_chi2_mod = chisquare(m.params,x_model[flag_mod], wave[flag_mod], spec_to_be_modelled[flag_mod], espec[flag_mod])/(wave[flag_mod].size - m.params.size)
                 # repeat the fit, with random initializations for the initial parameters
@@ -498,7 +484,6 @@ def loop_for_fit_wiggles(spec,spec_to_be_modelled,espec,power_law_stellar_model,
                     ax.plot(wave[flag_mod], spec_to_be_modelled[flag_mod], 'x', markersize=0.3,color='grey')
                 l_bins.append(wave[flag_mod].mean())
                 f_bins.append(m.params[0])
-                #if i_ch == wave.size -1: i_ch +=1 # to avoid repetion of last step in the loop
             if iN <=1 :  ## SET REFERENCE FOR A CHI2 FOR THE WHOLE WIGGLE SPECTRUM
                 best_chi2 =  chisquare_final(final_model[0,:],spec_to_be_modelled,espec)
             else:
@@ -533,9 +518,9 @@ def loop_for_fit_wiggles(spec,spec_to_be_modelled,espec,power_law_stellar_model,
                     bx.plot(wave[min_peaks],spec_to_be_modelled[min_peaks],"X",c="limegreen", markersize=5)
                     
 
-        best_wiggle_model = savgol_filter(np.nanmedian(final_model, axis=0),5,3 ) #np.nanmedian(final_model, axis=0)
+        best_wiggle_model = savgol_filter(np.nanmedian(final_model, axis=0),5,3 )
         
-        spec_corr = spec -  best_wiggle_model#np.nanmean(final_model, axis=0) # Substract WIGGLE MODEL (COSINE) WITHOUT CONTINUUM
+        spec_corr = spec -  best_wiggle_model # Substract WIGGLE MODEL to spectrum
         if (iplotF == 0) & (f_walls==2): 
             ax.legend(loc='upper right', prop={'size': 8}, mode = "expand", ncol = 3)
             bx.plot(wave,best_wiggle_model, color = 'red',label="Wiggle Model" ,alpha = 0.6)
@@ -550,7 +535,7 @@ def loop_for_fit_wiggles(spec,spec_to_be_modelled,espec,power_law_stellar_model,
             print('ITERATION {} OF 2 FINISHED'.format(f_walls+1))            
             correct_px = 'r' ### BY DEFAULT IT WILL RE ITERATE OVER TO GET A BETTER FIT
         else:
-            correct_px = 'y' # with f_walls = 2 we directly fit the oscillations with solid constraints, and correct for them without looking at results
+            correct_px = 'y'
             
         f_walls += 2
 
