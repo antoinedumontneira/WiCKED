@@ -88,8 +88,22 @@ class WICKED:
             N/A
         """
         c = k.c.to('km/s').value
+        ### FLATTEN THE SPECTRUM TO FIND OUTLIERS
+
+        wave_cont = self.wave
+        model_cont_coef = np.polyfit(wave_cont,data,deg=9)
+        model_cont = np.poly1d(model_cont_coef)(wave_cont)
+        data = data - model_cont
         ###### Identify continuum emission and line features in the 1d spectrum  ################## 
-        peaks = find_peaks_cwt(data, min_snr = self.min_peak_snr, widths = self.peak_width)
+        peaks_abs = find_peaks_cwt(-data, min_snr = self.min_peak_snr, widths = self.peak_width)
+        peaks_em = find_peaks_cwt(data, min_snr = self.min_peak_snr, widths = self.peak_width)
+        try:
+            peaks = np.concatenate([peaks_em,peaks_abs])
+        except:
+            if peaks_em.length != 0:
+                peaks = peaks_em
+            else:
+                peaks = peaks_abs
         ## the file linefeatures_vac.dat cointains the list of transitions that will be masked during the fit
         linefeatures = self.linefeatures
         if linefeatures != None:
@@ -102,19 +116,15 @@ class WICKED:
         for i in range(len(self.list_em_lines)):
             self.lines_to_be_flagged[i] = [self.list_em_lines[i]*(1-self.DV/c), self.list_em_lines[i]*(1+self.DV/c)]
         
-        # define low-order polynomial, to separate
-        # the sinusoidal component to be modelled
-        con_model_order = 3
         if do_plots == True:
             fig2 = plt.figure(figsize=(7,7))
             zx1 = fig2.add_subplot(1,1,1) 
             if len(peaks):
                 zx1.vlines(self.wave[peaks], ymin = 0.02, ymax=1, colors='k',label='fitted lines')
             zx1.vlines(list_em_lines,ymin = 0.02, ymax=1, colors='r',label='given mask lines')
-            zx1.plot(self.wave,spec_ref)
+            zx1.plot(self.wave,data)
             zx1.set_xlabel(r'obs.-frame wavelength ($\mu$m)')
             zx1.set_ylabel('flux (a.u.)')
-            zx1.set_xlim(minlambda,maxlambda)
             zx1.legend()
             plt.show(block=False)
         return
