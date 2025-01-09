@@ -123,7 +123,7 @@ class WICKED:
                 zx1.vlines(self.wave[peaks], ymin = 0.02, ymax=1, colors='k',label='fitted lines')
             zx1.vlines(list_em_lines,ymin = 0.02, ymax=1, colors='r',label='given mask lines')
             zx1.plot(self.wave,data)
-            zx1.set_xlabel(r'obs.-frame wavelength ($\mu$m)')
+            zx1.set_xlabel(r'wavelength ($\mu$m)')
             zx1.set_ylabel('flux (a.u.)')
             zx1.legend()
             plt.show(block=False)
@@ -225,7 +225,7 @@ class WICKED:
             zx1.axvspan(xmin=0,xmax=0.1,ymin=0,ymax=1,color='red',alpha=0.1,label='Masked Lines')
             if self.nrs_detectors == 2:
                 zx1.axvspan(xmin=self.gap_window[0],xmax=self.gap_window[1],ymin=0,ymax=1,color='gold',alpha=0.2,label='Detector Gap')
-            zx1.set_xlabel(r'obs.-frame wavelength ($\mu$m)')
+            zx1.set_xlabel(r'wavelength ($\mu$m)')
             zx1.set_ylabel('flux (a.u.)')
             zx1.legend()
             zx1.set_ylim([-.08, 1.2])
