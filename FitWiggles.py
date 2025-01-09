@@ -263,7 +263,7 @@ def set_plot_panels(wave,lines_to_be_flagged,gap_window  ):
     ax.set_ylabel('flux (a.u.)')
     ax.set_xticks([])
 
-    #panel with original spectra and templates
+    #panel with wiggles & wiggle model
     bx = plt.subplot(3, 1, 2)
     bx.set_ylim([-.3, 0.3])
     bx.set_xlim([wave[0], wave[-1]])
@@ -274,6 +274,7 @@ def set_plot_panels(wave,lines_to_be_flagged,gap_window  ):
     cx.set_ylim([-.08, 1.2])
     cx.set_xlim([wave[0], wave[-1]])
     cx.set_ylabel('flux (a.u.)')
+    cx.set_xlabel(r'wavelength ($\mu$m)')
     cx.set_xticks([])
 
     for iltbf in range(len(lines_to_be_flagged)):
