@@ -23,7 +23,7 @@ def costume_sigmaclip(wave,data,N_window=10,sigma=3):
     The code looks for outliers bsed on the provided sigma level and replace them with the mean value around a user define window. 
 
     Args:
-        wave (np.array): wavelenght array. Must be same lenght as data array
+        wave (np.array): Wavelength array. Must be same lenght as data array
         data (np.array): data. 
         N_window (int, optional): Windown around outlier to calculate mean value. Defaults to 10.
         sigma (int, optional): sigma threshold for the sigma_clip. Defaults to 3.
@@ -53,7 +53,7 @@ def costume_sigmaclip(wave,data,N_window=10,sigma=3):
             print('WARNING: cannot calculate local mean for outlier at wave = {:.2f} \n'.format(wave[ind]))
             print('will replace with global mean')
             plt.plot(wave[ind_low:ind_up],data[ind_low:ind_up])
-            plt.xlabel(r'wavelenght [$\mu m$]')
+            plt.xlabel(r'wavelength [$\mu m$]')
             plt.ylabel('Flux ')
             plt.show()
             mean_ind =  np.nanmean(data)
@@ -61,7 +61,7 @@ def costume_sigmaclip(wave,data,N_window=10,sigma=3):
     return sigma_clipped_daata
 
 def get_masked_regions(instance):
-    """Get boolean array of the wavelenghts to be masked during the power-law fit.
+    """Get boolean array of the Wavelength to be masked during the power-law fit.
     
     Args:
        self: The instance of the FittWiggleClass with the ".lines_to_be_flagged" already defined. 
@@ -138,13 +138,15 @@ def power_law_model_fit(wave,flux, masked_regions, do_plots = False) :
     power_law_guess = power_law(wave_for_model, guesses[0], guesses[1], guesses[2])
     popt,pcov = curve_fit(power_law, wave_for_model,flux_for_model, p0 = guesses,  method='trf', max_nfev = 10000) # need to set max iterations to larger than default else fit fails erroneously 
     a1_opt,b1_opt,c_opt = popt[0],popt[1],popt[2]
+    #perr = np.sqrt(np.diag(pcov))
+    #a_err,b_err,c_err = perr
     power_law_flux = power_law(wave,a1_opt,b1_opt,c_opt)
     if do_plots:
         plt.figure(figsize=(10,8))
         plt.plot(wave,power_law_flux, label = 'Power Law Fit')
         plt.plot(wave,flux,label='data')
-        plt.xlabel(r'Wavelenght [$\mu m$]')
-        plt.ylabel('Flux')
+        plt.xlabel(r'Wavelength [$\mu m$]',fontsize=15)
+        plt.ylabel('Flux (a.u)',fontsize=15)
         if len(masked_regions):
             plt.vlines(wave[masked_regions], ymin = 0.02, ymax=max(flux), alpha=0.05, colors='k',label='Masked pixels')
         plt.legend()
@@ -156,7 +158,7 @@ def power_law_stellar_fit(wavelenght, data,espec,spec_ref_in,spec_ref_out,masked
     This routine finds the weights A and B that best fits the data. 
 
     Args:
-        wavelenght (flaot): wavelenght array_
+        Wavelength (flaot): Wavelength array_
         data (float): spectrum to be fitted
         stellar_template (float): stellar reference spectrum
         masked_regions (bool): emission lines or outliers to be excluded during the fit. 
@@ -213,17 +215,18 @@ def make_plots(dictionary,lines_to_be_flagged, gap_window ,x,y):
     ax = plt.subplot(3, 1, 1)
     ax.set_ylim([-.08, 1.2])
     ax.set_xlim([wave[0], wave[-1]])
-    ax.set_ylabel('flux (a.u.)')
+    ax.set_ylabel('flux (a.u.)',fontsize=15)
     ax.set_xticks([])
     ax.set_title("PIXEL = {} , {}".format(x,y))
     bx = plt.subplot(3, 1, 2)
     bx.set_ylim([-.3, 0.3])
     bx.set_xlim([wave[0], wave[-1]])
+    bx.set_ylabel('flux (a.u.)',fontsize=15)
     #panel with corrected spectrum
     cx = plt.subplot(3,1,3)
     cx.set_ylim([-.08, 1.2])
     cx.set_xlim([wave[0], wave[-1]])
-    cx.set_ylabel('flux (a.u.)')
+    cx.set_ylabel('flux (a.u.)',fontsize=15)
     cx.set_xticks([])
 
     for iltbf in range(len(lines_to_be_flagged)):
@@ -255,12 +258,18 @@ def set_plot_panels(wave,lines_to_be_flagged,gap_window  ):
     nrs_detectors = 2
     if gap_window == 1:
         nrs_detectors = 1
+    #panel with frequencies
+    #ax = plt.subplot(3,1,3)
+    #ax.set_xlim([wave[0],wave[-1]])
+    #ax.set_ylim([-9,69])
+    #ax.set_xlabel(r'obs.-frame wavelength ($\mu$m)')
+    #ax.set_ylabel(r'frequency ($\mu$m$^{-1}$)')
 
     #panel with original spectra and templates
     ax = plt.subplot(3, 1, 1)
     ax.set_ylim([-.08, 1.2])
     ax.set_xlim([wave[0], wave[-1]])
-    ax.set_ylabel('flux (a.u.)')
+    ax.set_ylabel('flux (a.u.)',fontsize=15)
     ax.set_xticks([])
 
     #panel with wiggles & wiggle model
@@ -273,9 +282,9 @@ def set_plot_panels(wave,lines_to_be_flagged,gap_window  ):
     cx = plt.subplot(3,1,3)
     cx.set_ylim([-.08, 1.2])
     cx.set_xlim([wave[0], wave[-1]])
-    cx.set_ylabel('flux (a.u.)')
-    cx.set_xlabel(r'wavelength ($\mu$m)')
-    cx.set_xticks([])
+    cx.set_ylabel('flux (a.u.)',fontsize=15)
+    cx.set_xlabel(r'wavelength ($\mu$m)', fontsize=15)
+    
 
     for iltbf in range(len(lines_to_be_flagged)):
         #ax.axvspan(lines_to_be_flagged[iltbf][0], lines_to_be_flagged[iltbf][1], alpha=0.1, color='red')
@@ -374,6 +383,8 @@ def loop_for_fit_wiggles(spec,spec_to_be_modelled,espec,power_law_stellar_model,
     global best_freq_par
     if center_spec == "no":
         best_freq_par = args[12]
+    # correct_px is set to `r`
+    # to repeat the fit as many times as needed to optimise the frequency trend 
     # This loop stops after 1 interation if f_walls is set to 2
     ### IGNORE ANOYYING PYTHON WARNINGS
     warnings.filterwarnings(action='ignore', message='invalid value encountered in divide')
@@ -445,9 +456,12 @@ def loop_for_fit_wiggles(spec,spec_to_be_modelled,espec,power_law_stellar_model,
                     continue
                 
                 # model params ................................
+                # 
                 p = []
                 # frequency
                 try:
+                    # if already defined in a previous fit, the frequency will be initialised using the 
+                    # trend fw(lambda) shown in the 3rd panel of the figure below
                     f0 = np.poly1d(best_freq_par)(wave[flag_mod].mean())
                     p.append([np.max([f0,5]), np.max([f0-df0i[f_walls],5]), f0 + df0i[f_walls]])
                 except NameError:
@@ -462,6 +476,7 @@ def loop_for_fit_wiggles(spec,spec_to_be_modelled,espec,power_law_stellar_model,
                 fa = {'x_model':x_model[flag_mod],'x': wave[flag_mod], 'y': spec_to_be_modelled[flag_mod], 'err': espec[flag_mod]}
                 m = mpfit.mpfit(model, parinfo=parinfo, functkw=fa, ftol=1e-15, xtol=1e-15, quiet=1)
                 if (m.status <= 0):
+                    #print ('error message = ', m.errmsg)        
                     continue
                 best_chi2_mod = chisquare(m.params,x_model[flag_mod], wave[flag_mod], spec_to_be_modelled[flag_mod], espec[flag_mod])/(wave[flag_mod].size - m.params.size)
                 # repeat the fit, with random initializations for the initial parameters
@@ -485,6 +500,7 @@ def loop_for_fit_wiggles(spec,spec_to_be_modelled,espec,power_law_stellar_model,
                     ax.plot(wave[flag_mod], spec_to_be_modelled[flag_mod], 'x', markersize=0.3,color='grey')
                 l_bins.append(wave[flag_mod].mean())
                 f_bins.append(m.params[0])
+                #if i_ch == wave.size -1: i_ch +=1 # to avoid repetion of last step in the loop
             if iN <=1 :  ## SET REFERENCE FOR A CHI2 FOR THE WHOLE WIGGLE SPECTRUM
                 best_chi2 =  chisquare_final(final_model[0,:],spec_to_be_modelled,espec)
             else:
@@ -519,9 +535,9 @@ def loop_for_fit_wiggles(spec,spec_to_be_modelled,espec,power_law_stellar_model,
                     bx.plot(wave[min_peaks],spec_to_be_modelled[min_peaks],"X",c="limegreen", markersize=5)
                     
 
-        best_wiggle_model = savgol_filter(np.nanmedian(final_model, axis=0),5,3 )
+        best_wiggle_model = savgol_filter(np.nanmedian(final_model, axis=0),5,3 ) #np.nanmedian(final_model, axis=0)
         
-        spec_corr = spec -  best_wiggle_model # Substract WIGGLE MODEL to spectrum
+        spec_corr = spec -  best_wiggle_model#np.nanmean(final_model, axis=0) # Substract WIGGLE MODEL (COSINE) WITHOUT CONTINUUM
         if (iplotF == 0) & (f_walls==2): 
             ax.legend(loc='upper right', prop={'size': 8}, mode = "expand", ncol = 3)
             bx.plot(wave,best_wiggle_model, color = 'red',label="Wiggle Model" ,alpha = 0.6)
@@ -536,7 +552,7 @@ def loop_for_fit_wiggles(spec,spec_to_be_modelled,espec,power_law_stellar_model,
             print('ITERATION {} OF 2 FINISHED'.format(f_walls+1))            
             correct_px = 'r' ### BY DEFAULT IT WILL RE ITERATE OVER TO GET A BETTER FIT
         else:
-            correct_px = 'y'
+            correct_px = 'y' # with f_walls = 2 we directly fit the oscillations with solid constraints, and correct for them without looking at results
             
         f_walls += 2
 
@@ -550,7 +566,7 @@ def loop_for_fit_wiggles(spec,spec_to_be_modelled,espec,power_law_stellar_model,
     return
 
 
-def fitwiggles(self,affected_pixels,nuc_y=None,nuc_x=None,N_rep=15,N_Cores=1,do_plots=False):
+def fitwiggles(self,affected_pixels,nuc_y=None,nuc_x=None,N_rep=15,N_Cores=1,smooth_spectrum="y",do_plots=False):
     """ Main function to substract wiggles from NIRSpec cube. 
     This function prepares the spectrum for the pixels that have been flaged as affected by wiggles 
     with the function "define_affected_pixels()" and will find the best fit parameters with 
@@ -602,7 +618,10 @@ def fitwiggles(self,affected_pixels,nuc_y=None,nuc_x=None,N_rep=15,N_Cores=1,do_
         maxspec = affected_pixels[i][4]
         iy, ix = affected_pixels[i][0], affected_pixels[i][1]
         if ~((ix == self.nuc_y) & (iy == self.nuc_x)):
-            spec_to_be_modelled = spec - power_law_stellar_model 
+            if smooth_spectrum == "y":
+                spec_to_be_modelled = savgol_filter(spec - power_law_stellar_model,10,3)   ### APPLY A ~0.018 microns SMOOTHING TO MAKE WIGGLES MORE VISIBLE. ONLY RECOMMENDED FOR LOW-S/N. 
+            else:
+                spec_to_be_modelled = spec - power_law_stellar_model 
             #spec_to_be_modelled = costume_sigmaclip(wave,spec_to_be_modelled,sigma=3)
             tasks.append( (pool.apply_async( loop_for_fit_wiggles ,(  spec,spec_to_be_modelled,espec,power_law_stellar_model,maxspec,args, 1 ) ),iy,ix ) ) 
     print("\n ##### START WIGGLE CORRECTION ##### \n")

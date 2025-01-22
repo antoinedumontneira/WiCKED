@@ -142,14 +142,14 @@ def fit_wiggly_spaxels(freq_range,wave,data,masked_lines,con_windows,model_spaxe
         fig, (ax1, ax2) = plt.subplots(1, 2)
         fig.set_figheight(7)
         fig.set_figwidth(20)
-        ax1.set_title("Wggles spectrum of the pixel")
+        ax1.set_title("Wiggles spectrum of the pixel")
         if smooth_spectrum == "no":
             ax1.plot(wave_for_model ,(spec_for_model  - model_spaxel),label="Spectrum",c="royalblue")
         if smooth_spectrum == "yes":
             ax1.plot(wave_for_model ,wiggles_spec,label="Smoothed Spectrum",c="blue")
         ax1.vlines( wave_for_model[~masked_lines_for_model] ,np.nanmin(wiggles_spec) -0.1,np.nanmax(wiggles_spec)+0.1,alpha=0.05,color='red',label="Masked lines")
-        ax1.set_xlabel(r'wavelenght [$\mu m$]')
-        ax1.set_ylabel('Flux ')
+        ax1.set_xlabel(r'wavelength [$\mu m$]',fontsize=15)
+        ax1.set_ylabel('Flux (a.u)',fontsize=15)
         ax1.set_ylim(np.nanmin(wiggles_spec)+np.nanmin(wiggles_spec),np.nanmax(wiggles_spec)*2)
         ax1.legend()
         ax2.set_title("Fourier Transform")
@@ -164,7 +164,7 @@ def fit_wiggly_spaxels(freq_range,wave,data,masked_lines,con_windows,model_spaxe
         ax2.axvspan(min_freq, max_freq, alpha=0.15, color='r',label="Wiggle frequency regime")
         ax2.set_xlim(5,150)
         ax2.set_ylim(mean_ampl_large_freq-mean_ampl_large_freq,spaxel_level+spaxel_level)
-        ax2.set_xlabel(r'frequency [$\mu m^{-1}$]')
+        ax2.set_xlabel(r'frequency [$\mu m^{-1}$]',fontsize=15)
         ax2.legend()
     if spaxel_level >= 0:
         return (spaxel_level - mean_ampl_large_freq)/mean_ampl_large_freq_std
@@ -304,9 +304,9 @@ def get_wiggly_pixels(self,radius = 10, N_Cores = 1,smooth_spectrum="no",do_plot
         fig = plt.figure(figsize=(9,6)) 
         im = plt.scatter(np.array(Ys),np.array(Xs),c=np.array(ima_wiggles),s=200,marker='s',cmap="cool")
         plt.scatter(self.nuc_x,self.nuc_y,marker="X",s=30,color="yellow")
-        plt.colorbar(im, label='Wiggle Sigma Ratio')
-        plt.xlabel("X PIXEL")
-        plt.ylabel("Y PIXEL")
+        plt.colorbar(im, label='Fourier Ratio',fontsize=15)
+        plt.xlabel("X PIXEL",fontsize=15)
+        plt.ylabel("Y PIXEL",fontsize=15)
     
     return np.array(Xs),np.array(Ys),np.array(ima_wiggles),np.array(spectras) , np.array(especs),np.array(maxspecs) , np.array(best_models) ### X, Y, Wiggle Ratio, Spectrum, Variance, Normalization,  Best-fit Model
 
@@ -392,10 +392,10 @@ def plot_wiggle_FFT(self,X, Y,smooth_spectrum):
     plt.figure(figsize=(15,7))
     plt.title("Full Spectrum for this pixel")
     plt.plot(self.wave ,spec,c="blue")
-    plt.xlabel(r'wavelenght [$\mu m$]')
+    plt.xlabel(r'Wavelength [$\mu m$]',fontsize=15)
     plt.show(block=True)
 
     best_model = power_law_stellar_fit(self.wave,spec,espec,self.spec_ref_in,self.spec_ref_out,get_masked_regions(self))
     sigma_ratio = fit_wiggly_spaxels(freq_range,self.wave,spec,get_masked_regions(self),self.con_windows,best_model,self.nrs_detectors,smooth_spectrum=smooth_spectrum,do_plots=True) 
-    print("\n Sigma Ratio = {:.3f}".format(sigma_ratio))
+    print("\n Fourier Ratio = {:.3f}".format(sigma_ratio))
     return 
