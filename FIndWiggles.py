@@ -13,21 +13,19 @@ from scipy.signal import savgol_filter
 ### FUNCTIONS TO FIND PIXELS AFFECTED BY WIGGLES
 ##################
 
-def get_FFT(wave,data):
+def get_FFT(dt,wave,data):
     """ Simple function to obtain the Fast Fourier Transform of the given part of the spectrum.
 
     Args:
         wave (array): Wavelenght
         data (array): Spectrum
-
+                    : # sample spacing
     Returns:
        array : FFT model
     """
     # Number of sample points
     N = len(wave)
-    # sample spacing
-    T = wave[1] - wave[0]
-    xf = fftfreq(N, T)[:N//2]
+    xf = fftfreq(N, dt)[:N//2]
     yf = fft(data)
     return xf,yf
 
@@ -54,6 +52,9 @@ def fit_wiggly_spaxels(freq_range,wave,data,masked_lines,con_windows,model_spaxe
         wave_for_model_nrs2 =  wave[wiggle_window_nrs2]
         spec_for_model_nrs1 =  data[wiggle_window_nrs1] 
         spec_for_model_nrs2 =  data[wiggle_window_nrs2]  
+        ## SIGMA CLIP OUTLIERS, THE DATA IS NOT ALTERED, THIS IS ONLY FOR THE FFT
+        spec_for_model_nrs1 = costume_sigmaclip(wave_for_model_nrs1,spec_for_model_nrs1) ######### SIGMA CLIPPING !! ##########
+        spec_for_model_nrs2 = costume_sigmaclip(wave_for_model_nrs2,spec_for_model_nrs2) ######### SIGMA CLIPPING !! ##########
         model_spaxel_nrs1 = model_spaxel[wiggle_window_nrs1]
         model_spaxel_nrs2 = model_spaxel[wiggle_window_nrs2]
         wiggles_spec_nrs1 = spec_for_model_nrs1  - model_spaxel_nrs1
@@ -63,10 +64,11 @@ def fit_wiggly_spaxels(freq_range,wave,data,masked_lines,con_windows,model_spaxe
         ################### DEFINE SPECTRUMS IN THE WAVELENGHT RANGE TO BE MODELED ################
         wave_for_model =  wave
         spec_for_model =  data
+        ## SIGMA CLIP OUTLIERS, THE DATA IS NOT ALTERED, THIS IS ONLY FOR THE FFT
+        spec_for_model = costume_sigmaclip(wave_for_model,spec_for_model) ######### SIGMA CLIPPING !! ##########
         model_spaxel = model_spaxel
         wiggles_spec = spec_for_model  - model_spaxel
-    ######### LEFT THESE PLOTS HERE FOR DEBUGGING 
-
+    ####    
     if smooth_spectrum == "yes":
         if detector == 2:
             wiggles_spec_nrs1 = savgol_filter(wiggles_spec_nrs1,10,3)   ### APPLY A ~0.018 microns SMOOTHING TO MAKE WIGGLES MORE VISIBLE. ONLY RECOMMENDED FOR LOW-S/N. 
@@ -75,9 +77,10 @@ def fit_wiggly_spaxels(freq_range,wave,data,masked_lines,con_windows,model_spaxe
             wiggles_spec = savgol_filter(wiggles_spec,10,3)   ### APPLY A ~0.018 microns SMOOTHING TO MAKE WIGGLES MORE VISIBLE. ONLY RECOMMENDED FOR LOW-S/N. 
 
     ############# FOURIER TRASNFORM OF SPAXEL AND REFERENCE SPECTRUM
+    DT = wave[1] - wave[0] ### SAMPLING FOR THE FOURIER TRANSFORM 
     if detector == 2:
-        xf_nrs1,yf_spaxel_nrs1 = get_FFT(wave_for_model_nrs1[masked_lines_for_model_nrs1] ,wiggles_spec_nrs1[masked_lines_for_model_nrs1] )
-        xf_nrs2,yf_spaxel_nrs2 = get_FFT(wave_for_model_nrs2[masked_lines_for_model_nrs2] ,wiggles_spec_nrs2[masked_lines_for_model_nrs2] )
+        xf_nrs1,yf_spaxel_nrs1 = get_FFT(DT,wave_for_model_nrs1[masked_lines_for_model_nrs1] ,wiggles_spec_nrs1[masked_lines_for_model_nrs1] )
+        xf_nrs2,yf_spaxel_nrs2 = get_FFT(DT,wave_for_model_nrs2[masked_lines_for_model_nrs2] ,wiggles_spec_nrs2[masked_lines_for_model_nrs2] )
         N_nrs1 = len(wave_for_model_nrs1[masked_lines_for_model_nrs1]) 
         N_nrs2 =  len(wave_for_model_nrs2[masked_lines_for_model_nrs2])
         ### GET FREQUENCY RANGE OF WIGGLE.  ### I  DIVIDE THE RANGE OF FREQ INTO 2, CAUSE SOMETIMES THERE IS ONLY ONE TYPE OF WIGGLES. SO USING THE WHOLE RANGE IS LESS EFFECTIVE
@@ -121,7 +124,7 @@ def fit_wiggly_spaxels(freq_range,wave,data,masked_lines,con_windows,model_spaxe
         wiggles_spec = np.concatenate([wiggles_spec_nrs1,wiggles_spec_nrs2])
         masked_lines_for_model = np.concatenate([masked_lines_for_model_nrs1,masked_lines_for_model_nrs2])
     else:
-        xf,yf_spaxel = get_FFT(wave_for_model[masked_lines_for_model] ,wiggles_spec[masked_lines_for_model] )
+        xf,yf_spaxel = get_FFT(DT,wave_for_model[masked_lines_for_model] ,wiggles_spec[masked_lines_for_model] )
         N = len(wave_for_model[masked_lines_for_model])
         ### GET FREQUENCY RANGE OF WIGGLE
         min_freq, max_freq = np.max([freq_range[0],5]), np.min([freq_range[1],50])  ### USUALLY FREQ < 5 is just noise
@@ -144,9 +147,9 @@ def fit_wiggly_spaxels(freq_range,wave,data,masked_lines,con_windows,model_spaxe
         fig.set_figwidth(20)
         ax1.set_title("Wiggles spectrum of the pixel")
         if smooth_spectrum == "no":
-            ax1.plot(wave_for_model ,(spec_for_model  - model_spaxel),label="Spectrum",c="royalblue")
+            ax1.plot(wave_for_model ,(spec_for_model  - model_spaxel),label="Wiggle spectrum",c="red")
         if smooth_spectrum == "yes":
-            ax1.plot(wave_for_model ,wiggles_spec,label="Smoothed Spectrum",c="blue")
+            ax1.plot(wave_for_model ,wiggles_spec,label="Smoothed Spectrum",c="red")
         ax1.vlines( wave_for_model[~masked_lines_for_model] ,np.nanmin(wiggles_spec) -0.1,np.nanmax(wiggles_spec)+0.1,alpha=0.05,color='red',label="Masked lines")
         ax1.set_xlabel(r'wavelength [$\mu m$]',fontsize=15)
         ax1.set_ylabel('Flux (a.u)',fontsize=15)
@@ -158,9 +161,9 @@ def fit_wiggly_spaxels(freq_range,wave,data,masked_lines,con_windows,model_spaxe
             ax2.plot(xf_nrs2, 2.0/N_nrs2 * np.abs(yf_spaxel_nrs2[0:N_nrs2//2]) ,color='darkred',label='FFT Spectrum (NRS2)')
         else:
             ax2.plot(xf, 2.0/N * np.abs(yf_spaxel[0:N//2]) ,color='r',label='FFT Spectrum')
-        ax2.hlines(mean_ampl_large_freq ,min(xf),max(xf),color='green',label='Reference mean amplitude')
-        ax2.hlines(one_sigma_level ,min(xf),max(xf),color='green',linestyles='dashed',label='1 sigma enhancement')
-        ax2.hlines(spaxel_level ,min(xf),max(xf),color=color_mean,linestyles='solid')
+        ax2.hlines(mean_ampl_large_freq ,min(xf),max(xf),color='blue',label='Reference mean amplitude')
+        ax2.hlines(one_sigma_level ,min(xf),max(xf),color='blue',linestyles='dashed',label='1 sigma enhancement')
+        ax2.hlines(spaxel_level ,min(xf),max(xf),color="fuchsia",linestyles='solid',label="Mean amplitude wiggles")
         ax2.axvspan(min_freq, max_freq, alpha=0.15, color='r',label="Wiggle frequency regime")
         ax2.set_xlim(5,150)
         ax2.set_ylim(mean_ampl_large_freq-mean_ampl_large_freq,spaxel_level+spaxel_level)
@@ -205,7 +208,7 @@ def get_spec_ref_fft(wave,spec_ref,masked_lines,con_windows,detector):
     #plt.plot(wave_for_model,spec_ref_for_model)
     wiggles_ref_spec = spec_ref_for_model - power_law_model_spec_ref
     wiggles_ref_spec = savgol_filter(wiggles_ref_spec,10,3)
-    xf,yf_reference_spec = get_FFT(wave_for_model[masked_lines_for_model],wiggles_ref_spec[masked_lines_for_model])
+    xf,yf_reference_spec = get_FFT(DT,wave_for_model[masked_lines_for_model],wiggles_ref_spec[masked_lines_for_model])
     return yf_reference_spec , power_law_model_spec_ref
 
 def get_wiggly_pixels(self,radius = 10, N_Cores = 1,smooth_spectrum="no",do_plots=False):
@@ -254,7 +257,7 @@ def get_wiggly_pixels(self,radius = 10, N_Cores = 1,smooth_spectrum="no",do_plot
                 if np.median(spec) > 0:    
                     maxspec = np.median(spec[self.con_windows])
                     spec = spec / maxspec
-                    spec = costume_sigmaclip(self.wave,spec) ######### SIGMA CLIPPING !! ##########
+                    #spec = costume_sigmaclip(self.wave,spec) ######### SIGMA CLIPPING !! ##########
                     spec = spec * maxspec
                     if nrs_detectors == 2 :
                         maxspec = np.nanmax([ np.nanmax(spec[self.wave < self.gap_window[0]]), np.nanmax(spec[self.wave > self.gap_window[1]]) ])
@@ -304,7 +307,7 @@ def get_wiggly_pixels(self,radius = 10, N_Cores = 1,smooth_spectrum="no",do_plot
         fig = plt.figure(figsize=(9,6)) 
         im = plt.scatter(np.array(Ys),np.array(Xs),c=np.array(ima_wiggles),s=200,marker='s',cmap="cool")
         plt.scatter(self.nuc_x,self.nuc_y,marker="X",s=30,color="yellow")
-        plt.colorbar(im, label='Fourier Ratio',fontsize=15)
+        plt.colorbar(im, label='Fourier Ratio')
         plt.xlabel("X PIXEL",fontsize=15)
         plt.ylabel("Y PIXEL",fontsize=15)
     
@@ -379,7 +382,7 @@ def plot_wiggle_FFT(self,X, Y,smooth_spectrum):
     spec =  np.nan_to_num(self.cube[:,Y,X],nan= np.nanmedian(self.cube[:,Y,X][self.con_windows]))
     maxspec =np.median(spec[self.con_windows])
     spec = spec / maxspec
-    spec = costume_sigmaclip(self.wave,spec) ######### SIGMA CLIPPING !! ##########
+    #spec = costume_sigmaclip(self.wave,spec) ######### SIGMA CLIPPING !! ##########
     spec = spec * maxspec
     if self.nrs_detectors == 2:
         maxspec = np.nanmax([ np.nanmax(spec[self.wave < self.gap_window[0]]), np.nanmax(spec[self.wave > self.gap_window[1]]) ])
@@ -391,8 +394,10 @@ def plot_wiggle_FFT(self,X, Y,smooth_spectrum):
     espec[espec <= 0] = 1e-2
     plt.figure(figsize=(15,7))
     plt.title("Full Spectrum for this pixel")
-    plt.plot(self.wave ,spec,c="blue")
+    plt.plot(self.wave ,spec,c="red")
     plt.xlabel(r'Wavelength [$\mu m$]',fontsize=15)
+    plt.ylabel('Flux (a.u)',fontsize=15)
+    plt.savefig("FFT_Panel_1.pdf",dpi=200 ,bbox_inches='tight')
     plt.show(block=True)
 
     best_model = power_law_stellar_fit(self.wave,spec,espec,self.spec_ref_in,self.spec_ref_out,get_masked_regions(self))

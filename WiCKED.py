@@ -38,21 +38,29 @@ class WICKED:
         self.wave= ( hdu_01[1].header['CRVAL3']+ hdu_01[1].header['CDELT3']*np.arange(0, hdu_01[1].header['NAXIS3'])) #um
         self.jwst_filter = hdu_01[0].header["FILTER"]
         if hdu_01[0].header["DETECTOR"] == 'MULTIPLE':
-            self.nrs_detectors = 2
+            self.nrs_detectors = 2   ### 
         else:
             self.nrs_detectors = 1
+        if self.jwst_filter == 'F070LP':
+            if hdu_01[0].header["GRATING"]=="G140M":
+                self.good_continuum = [[0.93,1.25]]
+            else:
+                self.good_continuum = [[0.97,1.25]]
         if self.jwst_filter == 'F100LP':
             if self.nrs_detectors == 2:
                 self.gap_window = [1.435, 1.475]
-            self.good_continuum = [[1.02,1.42],[1.5,1.86]] ## Default, excludes only instrument gap and edges
+                self.good_continuum = [[1.02,1.42],[1.5,1.86]] ## Default, excludes only instrument gap and edges for the High-res data
+            self.good_continuum = [[1.02,1.86]] ## 
         if self.jwst_filter == 'F170LP':
             if self.nrs_detectors == 2:
                 self.gap_window = [2.39, 2.475]
-            self.good_continuum = [[1.7,2.36],[2.5,3.15]] ## Default, excludes only instrument gap and edges
+                self.good_continuum = [[1.7,2.36],[2.5,3.15]] ## Default, excludes only instrument gap and edges for the High-res data
+            self.good_continuum = [[1.7,3.15]] ##
         if self.jwst_filter == 'F290LP':
             if self.nrs_detectors == 2:
                 self.gap_window = [3.99, 4.16]
-            self.good_continuum = [[2.88,3.98],[4.2,5.26]] ###  Default, excludes only instrument gap       
+                self.good_continuum = [[2.88,3.98],[4.2,5.26]] ## Default, excludes only instrument gap and edges for the High-res data
+            self.good_continuum = [[2.88,5.26]] ##
         if self.nrs_detectors == 2:
             self.gap_mask = ~((self.wave > self.gap_window[0]) & (self.wave < self.gap_window[1]))
         # frequency parameters
