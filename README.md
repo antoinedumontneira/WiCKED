@@ -14,7 +14,7 @@ from wicked import Wicked
  ```
 #### Initialize the WICKED corrector
 run WiCKED.py
-corrector = Wicked(Object_name=sourcename,pathcube=pathcube_input,cube_path=cube_input,redshift=z,jwst_filter=jwst_filter)
+corrector = Wicked(Object_name=sourcename,pathcube,cube_name,redshift=z)
 
 #### Get center and integrated spectrum templates
 corrector.get_center(do_plots=True)
@@ -31,7 +31,7 @@ affected_pixels = define_affected_pixels(corrector,results)
 #### Apply the wiggle correction to flagged pixels
 from FitWiggles import FitWiggles
 FitWiggles(corrector,affected_pixels,N_Cores=NUMBER_OF_CPU,do_plots=True)
-#### DATA IS SAVED IN SAME FOLDER AS DATACUBE WITH THE _WIGGLECORRECTED EXTENSION
+#### DATA IS SAVED IN SAME FOLDER AS DATACUBE WITH THE _wicked.fits EXTENSION
 
 ```
 
@@ -56,8 +56,6 @@ WICKED requires the following Python libraries:
 ## Credits
 
 I got the inspiration to use a polynomial fit to characterize the frequency trend of Wiggles from the code by M. Perna. You can find their original repository [here](https://github.com/micheleperna/JWST-NIRSpec_wiggles/tree/main). Their code fits a polynomial to the frequency of wiggles at different wavelengths for the central and brightest pixel in the datacube, and then uses this as a prior for the rest of the pixels. I use a similar approach, but the polynomial is also tuned based on a chi-square fit for each pixel, since wiggles in different pixels sometimes have different frequencies.
-
-## Citation
 
 ## Citation  
 
