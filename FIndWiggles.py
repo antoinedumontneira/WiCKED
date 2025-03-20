@@ -103,14 +103,14 @@ def fit_wiggly_spaxels(freq_range,wave,data,masked_lines,con_windows,model_spaxe
             spaxel_level = spaxel_level_nrs1
             mean_ampl_large_freq  = np.mean( 2.0/N_nrs1 * np.abs(yf_spaxel_nrs1[0:N_nrs1//2])[large_freq_mask_nrs1] )
             mean_ampl_large_freq_std = np.std( 2.0/N_nrs1 * np.abs(yf_spaxel_nrs1[0:N_nrs1//2])[large_freq_mask_nrs1] )
-            #### DEFINE THRESHOLD TO DECIDE IF WIGGLES ARE PRESENT OR NOT
+            #### DEFINE Fourier_ratio TO DECIDE IF WIGGLES ARE PRESENT OR NOT
             one_sigma_level =  mean_ampl_large_freq + mean_ampl_large_freq_std
             color_mean = "r" 
         else:
             spaxel_level = spaxel_level_nrs2
             mean_ampl_large_freq  = np.mean( 2.0/N_nrs2 * np.abs(yf_spaxel_nrs2[0:N_nrs2//2])[large_freq_mask_nrs2] )
             mean_ampl_large_freq_std = np.std( 2.0/N_nrs2 * np.abs(yf_spaxel_nrs2[0:N_nrs2//2])[large_freq_mask_nrs2] )
-            #### DEFINE THRESHOLD TO DECIDE IF WIGGLES ARE PRESENT OR NOT
+            #### DEFINE Fourier_ratio TO DECIDE IF WIGGLES ARE PRESENT OR NOT
             one_sigma_level =  mean_ampl_large_freq + mean_ampl_large_freq_std     
             color_mean = "darkred"                  
         #########################################
@@ -138,7 +138,7 @@ def fit_wiggly_spaxels(freq_range,wave,data,masked_lines,con_windows,model_spaxe
         mean_ampl_pixel_2  = np.nanmean( (2.0/N * np.abs(yf_spaxel[0:N//2]) )[short_freq_mask_2] )
         one_sigma_level =  mean_ampl_large_freq + mean_ampl_large_freq_std
         ### I USUALLY DIVIDE THE RANGE OF FREQ INTO 2, CAUSE SOMETIMES THERE IS ONLY ONE TYPE OF WIGGLES. SO USING THE WHOLE RANGE IS LESS EFFECTIVE
-        #### DEFINE THRESHOLD TO DECIDE IF WIGGLES ARE PRESENT OR NOT
+        #### DEFINE Fourier_ratio TO DECIDE IF WIGGLES ARE PRESENT OR NOT
         spaxel_level = np.nanmax([mean_ampl_pixel_1,mean_ampl_pixel_2])
         color_mean = "r"
     if do_plots:
@@ -266,7 +266,11 @@ def get_wiggly_pixels(self,radius = 10, N_Cores = 1,smooth_spectrum="no",do_plot
                     spec = spec / maxspec
                     espec = espec / maxspec * 2
                     espec[espec <= 0] = 1e-2
-                    power_law_task.append([ (pool.apply_async( power_law_stellar_fit ,(wave,spec,espec,spec_ref_in,spec_ref_out,masked_lines) )),y,x,spec,espec,maxspec ] )
+                    if nrs_detectors == 2 :
+                        power_law_task.append([ (pool.apply_async( power_law_stellar_fit ,(wave,spec,espec,spec_ref_in,spec_ref_out,masked_lines,self.gap_mask,self.smooth_model) )),y,x,spec,espec,maxspec ] )
+                    else:
+                        power_law_task.append([ (pool.apply_async( power_law_stellar_fit ,(wave,spec,espec,spec_ref_in,spec_ref_out,masked_lines,None,self.smooth_model) )),y,x,spec,espec,maxspec ] )
+
                 else:
                     print("WARNING BAD PIXEL. PIXEL {} {} SKIPPED!".format(y,x))
                     continue
@@ -305,6 +309,7 @@ def get_wiggly_pixels(self,radius = 10, N_Cores = 1,smooth_spectrum="no",do_plot
         best_models.append(results[i][6])
     if do_plots:
         fig = plt.figure(figsize=(9,6)) 
+        plt.text(.05, .95, 'Mean Fourier ratio = {:.1f}'.format( np.nanmedian(ima_wiggles)) , ha='left', va='top', transform=plt.gca().transAxes, bbox=dict(facecolor='white', edgecolor='blue', boxstyle='round,pad=0.4'))
         im = plt.scatter(np.array(Ys),np.array(Xs),c=np.array(ima_wiggles),s=200,marker='s',cmap="cool")
         plt.scatter(self.nuc_x,self.nuc_y,marker="X",s=30,color="yellow")
         plt.colorbar(im, label='Fourier Ratio')
@@ -313,21 +318,21 @@ def get_wiggly_pixels(self,radius = 10, N_Cores = 1,smooth_spectrum="no",do_plot
     
     return np.array(Xs),np.array(Ys),np.array(ima_wiggles),np.array(spectras) , np.array(especs),np.array(maxspecs) , np.array(best_models) ### X, Y, Wiggle Ratio, Spectrum, Variance, Normalization,  Best-fit Model
 
-def define_affected_pixels(self,results, threshold=3,save_file=False):
+def define_affected_pixels(self,results, Fourier_ratio=3,save_file=False):
     """ Simple function to create a boolean mask based on the resulting FFT fits and the 
-    user defined threshold. I do this seperately and not automated so the user can have
+    user defined Fourier_ratio. I do this seperately and not automated so the user can have
     control on which thershold is more suitable. 
 
     Args:
         results (array): _description_
-        threshold (int, optional): Number of sigma thresholds that defines a pixel affected by wiggles
+        Fourier_ratio (int, optional): Number of sigma thresholds that defines a pixel affected by wiggles
         . Defaults to 1.
 
     Returns:
         bool array: array containg the coordinates of the pixels affected by wigglres. 
     """
     nuc_x,nuc_y = self.nuc_x,self.nuc_y 
-    affected_pixels_mask =  results[2]  >= threshold
+    affected_pixels_mask =  results[2]  >= Fourier_ratio
     #### ADD OR EXCLUDE PIXELS DEFINE BY THE USE ###
     if self.add_pixels !=None:
         self.add_pixels = np.array(self.add_pixels)
@@ -397,10 +402,11 @@ def plot_wiggle_FFT(self,X, Y,smooth_spectrum):
     plt.plot(self.wave ,spec,c="red")
     plt.xlabel(r'Wavelength [$\mu m$]',fontsize=15)
     plt.ylabel('Flux (a.u)',fontsize=15)
-    plt.savefig("FFT_Panel_1.pdf",dpi=200 ,bbox_inches='tight')
     plt.show(block=True)
-
-    best_model = power_law_stellar_fit(self.wave,spec,espec,self.spec_ref_in,self.spec_ref_out,get_masked_regions(self))
+    if self.nrs_detectors == 2:
+        best_model = power_law_stellar_fit(self.wave,spec,espec,self.spec_ref_in,self.spec_ref_out,get_masked_regions(self),self.gap_mask,self.smooth_model)
+    else:
+        best_model = power_law_stellar_fit(self.wave,spec,espec,self.spec_ref_in,self.spec_ref_out,get_masked_regions(self),None,self.smooth_model)
     sigma_ratio = fit_wiggly_spaxels(freq_range,self.wave,spec,get_masked_regions(self),self.con_windows,best_model,self.nrs_detectors,smooth_spectrum=smooth_spectrum,do_plots=True) 
     print("\n Fourier Ratio = {:.3f}".format(sigma_ratio))
     return 

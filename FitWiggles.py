@@ -153,7 +153,7 @@ def power_law_model_fit(wave,flux, masked_regions, do_plots = False) :
     return flux, power_law_flux
 
 
-def power_law_stellar_fit(wavelenght, data,espec,spec_ref_in,spec_ref_out,masked_regions,normalize=False):
+def power_law_stellar_fit(wavelenght, data,espec,spec_ref_in,spec_ref_out,masked_regions,gap_mask=None,smooth_model=False):
     """ We assume that the fitted spectrum is a combination of the A*reference_sepctrum + B*power-law. 
     This routine finds the weights A and B that best fits the data. 
 
@@ -169,24 +169,51 @@ def power_law_stellar_fit(wavelenght, data,espec,spec_ref_in,spec_ref_out,masked
     """
     ### IGNORE ANOYYING PYTHON WARNINGS
     warnings.filterwarnings(action='ignore', message='invalid value encountered in divide')
-    warnings.filterwarnings(action='ignore', message='invalid value encountered in scalar divide') 
-    
-    if normalize == True : 
-        maxspec =  np.nanmax([ np.nanmax(data[wavelenght < gap_window[0]]), np.nanmax(data[wavelenght > gap_window[1]]) ])
-        data = data / maxspec
-        
+    warnings.filterwarnings(action='ignore', message='invalid value encountered in scalar divide')    
     flux , power_law_template =  power_law_model_fit(wavelenght,data,masked_regions)
-    
-    def power_law_plus_annular_model(x,A,B,C,d1,d2,d3):
-        total_model = A*power_law_template + B*spec_ref_in +C*spec_ref_out + d1*x**2 + d2*x + d3
-        return total_model
-    data = np.nan_to_num(data)
-    guesses_polynomial = np.polyfit(wavelenght, np.nan_to_num(data), 2)
-    guesses = [0.33,0.33,0.33,guesses_polynomial[0],guesses_polynomial[1],guesses_polynomial[2]] ## ASUME EUQAL CONTRIBUTION FROM BOTH TEMPLATES
-    popt,pcov = curve_fit(power_law_plus_annular_model,xdata= wavelenght,ydata=data,sigma=espec,absolute_sigma= True, p0 = guesses,method='trf', max_nfev = 10000) # need to set max iterations to larger than default else fit fails erroneously 
-    A_opt,B_opt,C_opt,d1_opt,d2_opt,d3_opt = popt[0],popt[1],popt[2],popt[3],popt[4],popt[5]
+    ########## check if data was taken with 1 or 2 NRS detectors, to exclude the instrument gap. 
+    ### define variables for the fitting
+    if np.any(gap_mask)!=None:
+        wave = wavelenght[gap_mask]
+        data_fit = data[gap_mask]
+        power_law_template_fit = power_law_template[gap_mask]
+        spec_ref_in_fit = spec_ref_in[gap_mask]
+        spec_ref_out_fit = spec_ref_out[gap_mask]
+        espec_fit = espec[gap_mask]
+    else: 
+        wave = wavelenght
+        data_fit = np.nan_to_num(data)
+        power_law_template_fit = power_law_template
+        spec_ref_in_fit = spec_ref_in
+        spec_ref_out_fit = spec_ref_out
+        espec_fit = espec
+    if smooth_model==True: ## smooth the continuum of the spectrum to create a template to fit the data
+        smooth_data_fit = savgol_filter(np.nan_to_num(data_fit),int(len(data_fit)/2),3) ## smoothing template with a width of 1.1 microns
+        smooth_data = savgol_filter(np.nan_to_num(data),int(len(data)/2),3) ## smoothing template with a width of 1.1 microns
+        def power_law_plus_annular_model(x,A,B,C,D,f1,f2,f3):
+            total_model = A*power_law_template_fit + B*spec_ref_in_fit +C*spec_ref_out_fit + D*smooth_data_fit + f1*x**2 + f2*x + f3
+            return total_model
+        def power_law_plus_annular_reconstruc(x,A,B,C,D,f1,f2,f3):
+            total_model = A*power_law_template + B*spec_ref_in +C*spec_ref_out + D*smooth_data + f1*x**2 + f2*x + f3
+            return total_model
+        guesses_polynomial = np.polyfit(wave, data_fit- smooth_data_fit, 2)
+        guesses = [0.5,0.5,0.5,1.0,guesses_polynomial[0],guesses_polynomial[1],guesses_polynomial[2]] ## ASUME EUQAL CONTRIBUTION FROM BOTH TEMPLATES. We set the amplitud guess to 1.0
+        popt,pcov = curve_fit(power_law_plus_annular_model,xdata= wave,ydata=data_fit,sigma=espec_fit,absolute_sigma= True, p0 = guesses,method='trf', max_nfev = 10000) # need to set max iterations to larger than default else fit fails erroneously 
+        A_opt,B_opt,C_opt,D_opt,f1_opt,f2_opt,f3_opt = popt[0],popt[1],popt[2],popt[3],popt[4],popt[5],popt[6]
+        power_law_flux_model = power_law_plus_annular_reconstruc(wavelenght,A_opt,B_opt,C_opt,D_opt,f1_opt,f2_opt,f3_opt)
 
-    power_law_flux_model = power_law_plus_annular_model(wavelenght,A_opt,B_opt,C_opt,d1_opt,d2_opt,d3_opt)
+    if smooth_model == False:
+        def power_law_plus_annular_model(x,A,B,C,d1,d2,d3):
+            total_model = A*power_law_template_fit + B*spec_ref_in_fit +C*spec_ref_out_fit + d1*x**2 + d2*x + d3 
+            return total_model
+        def power_law_plus_annular_reconstruc(x,A,B,C,d1,d2,d3):
+            total_model = A*power_law_template + B*spec_ref_in +C*spec_ref_out + d1*x**2 + d2*x + d3 
+            return total_model
+        guesses_polynomial = np.polyfit(wave, data_fit - power_law_template_fit, 2)
+        guesses = [0.33,0.33,0.33,guesses_polynomial[0],guesses_polynomial[1],guesses_polynomial[2]] ## ASUME EUQAL CONTRIBUTION FROM BOTH TEMPLATES
+        popt,pcov = curve_fit(power_law_plus_annular_model,xdata= wave,ydata=data_fit,sigma=espec_fit,absolute_sigma= True, p0 = guesses,method='trf', max_nfev = 10000) # need to set max iterations to larger than default else fit fails erroneously 
+        A_opt,B_opt,C_opt,d1_opt,d2_opt,d3_opt = popt[0],popt[1],popt[2],popt[3],popt[4],popt[5]
+        power_law_flux_model = power_law_plus_annular_reconstruc(wavelenght,A_opt,B_opt,C_opt,d1_opt,d2_opt,d3_opt)
     #### AD EXTRA LOW-ORDER POLYNOMIAL FOR CONTINUUM MISTMATCHES 
     
     return power_law_flux_model
@@ -415,6 +442,10 @@ def loop_for_fit_wiggles(spec,wiggle_spectrum,espec,power_law_stellar_model,maxs
         max_peaks, _ = find_peaks(filter_spec, distance=60,height=np.std(filter_spec)*0.1) ### peaks must be ~ 0.1 microns apart
         min_peaks, _ = find_peaks(filter_spec*-1, distance=60,height=np.std(filter_spec)*0.1)
         combined_peaks = np.sort(np.concatenate([min_peaks,max_peaks]))
+        if f0 ==30: ## default prior is 30. This steps is skipped if users define it's own freq. prior
+            f0 = 0.5/(np.mean(np.diff(combined_peaks))*(wave[1]-wave[0])) ### FREQ Prior based on the average distance between peaks. 
+        if f_walls == 0:
+            print("Freq. prior of wiggles = {:.1f} [1/mu]".format(f0))
         # repeat the fit for N_rep to increase the quality...
         for iN in range(N_rep):
             l_bins = []
@@ -466,6 +497,7 @@ def loop_for_fit_wiggles(spec,wiggle_spectrum,espec,power_law_stellar_model,maxs
                     p.append([np.max([f0,5]), np.max([f0-df0i[f_walls],5]), f0 + df0i[f_walls]])
                 except NameError:
                     # otherwise, the frequency will be initialised using the parameter defined in the json file
+                    
                     p.append([f0,  bfi[0], bfi[1]])
                     
                 p.append([0.09, 0.001, 0.5])    # Amplitude 1
@@ -473,7 +505,7 @@ def loop_for_fit_wiggles(spec,wiggle_spectrum,espec,power_law_stellar_model,maxs
                 parinfo = []
                 parinfo = [{'value': p[i][0], 'fixed': 0, 'limited': [1, 1], 'limits': [p[i][1], p[i][2]]} for i in range(len(p))]
                 # ................................
-                fa = {'x_model':x_model[flag_mod],'x': wave[flag_mod], 'y': wiggle_spectrum[flag_mod], 'err': espec[flag_mod]}
+                fa = {'x_model':x_model[flag_mod],'x': wave[flag_mod], 'y': wiggle_spectrum[flag_mod] , 'err': espec[flag_mod]}
                 m = mpfit.mpfit(model, parinfo=parinfo, functkw=fa, ftol=1e-15, xtol=1e-15, quiet=1)
                 if (m.status <= 0):
                     #print ('error message = ', m.errmsg)        
@@ -489,7 +521,7 @@ def loop_for_fit_wiggles(spec,wiggle_spectrum,espec,power_law_stellar_model,maxs
                     parinfo = [{'value': p[i][0], 'fixed': 0, 'limited': [1, 1], 'limits': [p[i][1], p[i][2]]} for i in range(len(p))]
                     m0 = mpfit.mpfit(model, parinfo=parinfo, functkw=fa, ftol=1e-15, xtol=1e-15, quiet=1)
                     
-                    chi2_mod_new = chisquare(m0.params,x_model[flag_mod], wave[flag_mod], wiggle_spectrum[flag_mod], espec[flag_mod])/(wave[flag_mod].size - m0.params.size)
+                    chi2_mod_new = chisquare(m0.params,x_model[flag_mod], wave[flag_mod], wiggle_spectrum[flag_mod] , espec[flag_mod])/(wave[flag_mod].size - m0.params.size)
 
                     if chi2_mod_new < best_chi2_mod:
                         m = m0
@@ -538,8 +570,13 @@ def loop_for_fit_wiggles(spec,wiggle_spectrum,espec,power_law_stellar_model,maxs
         best_wiggle_model = savgol_filter(np.nanmedian(final_model, axis=0),5,3 ) #np.nanmedian(final_model, axis=0)
         
         spec_corr = spec -  best_wiggle_model#np.nanmean(final_model, axis=0) # Substract WIGGLE MODEL (COSINE) WITHOUT CONTINUUM
+        min_freq_wiggle,max_frequ_wiggle =  str(np.min(np.round(sorted_f_bins))),str(np.max(np.round(sorted_f_bins))) # Get MIN & MAX freuqnecy of Wiggles to display them in the plot
+        meam_frequ_wiggle =  str(np.round(np.nanmedian(sorted_f_bins))) # Get MIN & MAX freuqnecy of Wiggles to display them in the plot
         if (iplotF == 0) & (f_walls==2): 
             ax.legend(loc='upper right', prop={'size': 8}, mode = "expand", ncol = 3)
+            #bx.text(.05, .93, 'Freq. range wiggles = ' + min_freq_wiggle + ' - ' +max_frequ_wiggle + r' [1/$\mu$]', ha='left', va='top',transform=bx.transAxes, bbox=dict(facecolor='none', edgecolor='red', boxstyle='round,pad=0.4'))
+            bx.text(.05, .93, 'Median Freq. wiggles = ' + meam_frequ_wiggle + r' [1/$\mu$]', ha='left', va='top',transform=bx.transAxes, bbox=dict(facecolor='none', edgecolor='red', boxstyle='round,pad=0.4'))
+
             bx.plot(wave,best_wiggle_model, color = 'red',label="Wiggle Model" ,alpha = 0.6)
             bx.plot(wave,np.zeros(wave.size),"k--")
             bx.legend(loc='upper right')
@@ -549,7 +586,7 @@ def loop_for_fit_wiggles(spec,wiggle_spectrum,espec,power_law_stellar_model,maxs
             plt.show(block=False)
 
         if f_walls != 2:
-            print('ITERATION {} OF 2 FINISHED'.format(f_walls+1))            
+            print('50% OF THE {} ITERATIONS FINISHED'.format(N_rep))  
             correct_px = 'r' ### BY DEFAULT IT WILL RE ITERATE OVER TO GET A BETTER FIT
         else:
             correct_px = 'y' # with f_walls = 2 we directly fit the oscillations with solid constraints, and correct for them without looking at results
@@ -642,8 +679,8 @@ def fitwiggles(self,affected_pixels,nuc_y=None,nuc_x=None,N_rep=15,N_Cores=1,smo
     ############ WRITE RESULTS ON DATA CUBE ########################################
     print("ADDING CORRECTED SPECTRA TO DATA CUBE \n")
     # read data cube 
-    cube_output = self.pathcube_input + self.cube_input[:-5] + '_wicked.fits'
-    hdu_01  = fits.open(self.pathcube_input + self.cube_input)
+    cube_output = self.pathcube_input + self.cube_name[:-5] + '_wicked.fits'
+    hdu_01  = fits.open(self.pathcube_input + self.cube_name)
     for i in range(len(sorted_lf_bins)):
         hdu_01[1].data[:,sorted_lf_bins[i][1],sorted_lf_bins[i][0]] = sorted_lf_bins[i][2]
 

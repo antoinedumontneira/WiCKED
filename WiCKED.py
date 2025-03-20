@@ -27,12 +27,12 @@ class WICKED:
     - jwst_filter : name of NIRSpec filter ('f170lp' or 'f290lp')
     - nrs_detectors: 1 or 2. Number of NRS detectors in the data, i.e nrs1 & nrs2 or only one. 
     """
-    def __init__(self,pathcube, cube_path,redshift):
+    def __init__(self,pathcube, cube_name,redshift):
         self.redshift = redshift
         self.pathcube_input = pathcube
-        self.cube_input = cube_path
+        self.cube_name = cube_name
         # read data cube 
-        hdu_01  = fits.open(self.pathcube_input + self.cube_input)
+        hdu_01  = fits.open(self.pathcube_input + self.cube_name)
         self.cube = (hdu_01[1].data)
         self.ecube = (hdu_01[2].data)
         self.wave= ( hdu_01[1].header['CRVAL3']+ hdu_01[1].header['CDELT3']*np.arange(0, hdu_01[1].header['NAXIS3'])) #um
@@ -68,6 +68,8 @@ class WICKED:
         self.bfi = [0.5,50] # boundaries for the fit for the wiggles frequency, to be used for the 1d spectrum with highest S/N
         self.df0i =  [15, 10, 5, 5] # delta-frequence for the wiggles modelling
         self.DV = 600 # define the wavelength range around each emission line in km/s
+        # fitting parameters
+        self.smooth_model = False # if a smooth continuum template will be used or not
         # parameters for the automatic detection of peaks
         self.min_peak_snr = 3
         self.peak_width = 1
@@ -296,7 +298,11 @@ class WICKED:
         spec = spec / maxspec
         espec =np.nan_to_num( self.ecube[:, nuc_y, nuc_y], nan=np.nanmedian(self.ecube[:, nuc_y, nuc_y][self.con_windows])  ) / maxspec * 2
         espec[espec <= 0] = 1e-2
-        power_law_stellar_model = power_law_stellar_fit(wave,spec,espec,spec_ref_in,spec_ref_out,masked_lines)
+        if self.nrs_detectors == 2:
+            power_law_stellar_model = power_law_stellar_fit(wave,spec,espec,spec_ref_in,spec_ref_out,masked_lines,self.gap_mask,self.smooth_model)
+        else:
+            power_law_stellar_model = power_law_stellar_fit(wave,spec,espec,spec_ref_in,spec_ref_out,masked_lines,None,self.smooth_model)
+
         spec_to_be_modelled = spec - power_law_stellar_model 
         ### RUN FIT
         args = [wave,spec_ref_in,spec_ref_out,f_walls,lines_to_be_flagged,gap_window,x_model,N_rep,f0,df0i ,bfi,center_spec ]
