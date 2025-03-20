@@ -1,0 +1,14 @@
+cff-version: 1.2.0
+message: If you use this software, please cite as below.
+title: WICKED
+abstract: WIggle Corrector Kit for NIRSpEc Data.
+authors:
+- name: Antoine Dumont
+  email: dumont@mpia.de
+  orcid: https://orcid.org/0000-0003-0234-3376
+version: 3.0
+doi: https://doi.org/10.48550/arXiv.2503.09697
+date-released: '2025-03-20'
+type: software
+license: BSD-3-Clause
+url: https://github.com/mpi-astronomy/snowblind
