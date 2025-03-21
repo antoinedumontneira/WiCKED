@@ -54,7 +54,7 @@ WICKED requires the following Python libraries:
 - photutils
 - astropy
 
-**WICKED** uses the  Michelle Cappellari version of the **mpfit** library, available through the [CAMEL tool repository](https://gitlab.lam.fr/bepinat/CAMEL). `cap_mpfit' does not require installation but must be in the same working directory as WICKED or included in the `PYTHONPATH'.
+**WICKED** uses the  Michelle Cappellari version of the **mpfit** library, available through the [CAMEL tool repository](https://gitlab.lam.fr/bepinat/CAMEL). `cap_mpfit` does not require installation but must be in the same working directory as WICKED or included in the `PYTHONPATH`.
 
 ## Credits
 
