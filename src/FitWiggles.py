@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
 from astropy import constants as k
 from threadpoolctl import threadpool_limits
-from mgefit import cap_mpfit as mpfit
+import cap_mpfit as mpfit
 from scipy.signal import savgol_filter
 from astropy.io import fits
 import random as rn
