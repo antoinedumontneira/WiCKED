@@ -54,7 +54,7 @@ WICKED requires the following Python libraries:
 - photutils
 - astropy
 
-**WICKED** uses the  Michelle Cappellari version of the **mpfit** library included in the **mgefit** version 5.0.15 available for installation  [HERE!](https://pypi.org/project/mgefit/5.0.15/#files). **WICKED** does not require installation the full installation of the mgefit library but only the `cap_mpfit`, which must be in the same working directory as WICKED or included in the `PYTHONPATH`.
+**WICKED** uses the  Michelle Cappellari version of the **mpfit** library included in the **mgefit** version 5.0.15 available for installation  [HERE!](https://pypi.org/project/mgefit/5.0.15/#files). **WICKED** does not require installation the full installation of the mgefit library but only the `cap_mpfit` file, which must be in the same working directory as WICKED or included in the `PYTHONPATH`.
 
 ## Credits
 
