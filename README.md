@@ -9,8 +9,7 @@ The Moire pattern can be modeled as a series of different sinusoidal waves. WiCK
 To flag pixels affected by wiggles in the datacube, WiCKED calculates the Fourier Transfrom for the residual between the best-fit and the single-pixel spectrum and compares the mean amplitude at frequency were wiggles dominate (tipically f < 50 [1/micron]) and at longer wavelenghts. Pixels with a larger ratio between these two windows are flagged. The typical frequency of the wiggles is calculated based on the wiggles of the brightest pixel. 
 
 ## Usage Examples
-A Detailed example on how to use WICKED is shown in the example notebook in the Example folder.
-
+A Detailed example on how to use WICKED is shown in the [example notebook](https://github.com/antoinedumontneira/WiCKED/blob/dev/Examples/Example_notebook.ipynb) in the Example folder.
 
 ## Features
 - **Accurate Moire Pattern Correction**: Models and removes sinusoidal wiggles from NIRSpec IFS data.
