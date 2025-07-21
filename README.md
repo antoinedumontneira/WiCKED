@@ -11,11 +11,6 @@ To flag pixels affected by wiggles in the datacube, WiCKED calculates the Fourie
 ## Usage Examples
 A Detailed example on how to use WICKED is shown in the [example notebook](https://github.com/antoinedumontneira/WiCKED/blob/dev/Examples/Example_notebook.ipynb) in the Example folder.
 
-## Features
-- **Accurate Moire Pattern Correction**: Models and removes sinusoidal wiggles from NIRSpec IFS data.
-- **Integrated Spectrum Templates**: Utilizes spectrum templates and power-laws for precise modeling.
-- **Single-Pixel Spectrum Fitting**: Fits residuals with a series of sinusoidal waves for enhanced accuracy.
-
 ## Installation
 To install WICKED, you can pip install the repository on you local folder. There is no installation required for WiCKED.
 
