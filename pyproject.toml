@@ -30,3 +30,4 @@ exclude = [
     'build',
     '*_version.py',
 ]
+# linters: flake8, black, ruff

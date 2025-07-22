@@ -376,7 +376,7 @@ def meanclip(image,
     mean = np.nanmean(image[subs])
     sigma = np.std(image[subs])
     if verbose:
-        print(prf+strn(clipsig)+'-sigma clipped mean')
+        print(prf+str(clipsig)+'-sigma clipped mean')
         print(prf+'Mean computed in ',iter,' iterations')
         print(prf+'Mean = ',mean,',  sigma = ',sigma)
     if not returnSubs:
