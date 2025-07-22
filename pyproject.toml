@@ -1,9 +1,7 @@
 [project]
 name = "wicked"
 authors = [{name = "Antoine Dumont", email = "dumont@mpia.de"}]
-description = "WICKED: Wiggle Identification and Correction using Fourier Decomposition.
-This package provides tools for identifying and correcting high-frequency
-spectral wiggles in NIRSpec IFU data using Fourier-based analysis."
+description = "Wiggle Identification and Correction using Fourier Decomposition"
 readme = "README.md"
 license = { file = 'LICENSE' }
 classifiers = [
@@ -31,9 +29,4 @@ exclude = [
     '.eggs',
     'build',
     '*_version.py',
-]
-
-[tool.coverage.run]
-omit = [
-    "_version.py",
 ]
