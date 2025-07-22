@@ -9,7 +9,6 @@ from astropy.io import fits
 from astropy.stats import (
     sigma_clip,
 )  # Remove ramaining outliers left by the standard pipeline
-from matplotlib.gridspec import GridSpec
 from mgefit import (
     cap_mpfit as mpfit,
 )  ## import cap_mpfit directly from the mgefit package version 5.0.15
@@ -55,7 +54,7 @@ def costume_sigmaclip(wave, data, N_window=10, sigma=3):
             mean_ind = np.nanmean(
                 [data[ind_low:ind].mean(), data[loop_ind:ind_up].mean()]
             )
-        except:
+        except Exception:
             print(
                 "WARNING: cannot calculate local mean for outlier at wave = {:.2f} \n".format(
                     wave[ind]
@@ -166,7 +165,6 @@ def power_law_model_fit(wave, flux, masked_regions, do_plots=False):
         Cs.append(popt[2])
     ###### RUN POWER-LAW FIT WITH MEAN GUESS OF RANDOM INITIAIONS
     guesses = [np.mean(A1s), np.mean(B1s), np.mean(Cs)]
-    power_law_guess = power_law(wave_for_model, guesses[0], guesses[1], guesses[2])
     popt, pcov = curve_fit(
         power_law,
         wave_for_model,
@@ -231,7 +229,7 @@ def power_law_stellar_fit(
     flux, power_law_template = power_law_model_fit(wavelenght, data, masked_regions)
     ########## check if data was taken with 1 or 2 NRS detectors, to exclude the instrument gap.
     ### define variables for the fitting
-    if np.any(gap_mask) != None:
+    if gap_mask is not None:
         wave = wavelenght[gap_mask]
         data_fit = data[gap_mask]
         power_law_template_fit = power_law_template[gap_mask]
@@ -246,7 +244,7 @@ def power_law_stellar_fit(
         spec_ref_out_fit = spec_ref_out
         espec_fit = espec
     if (
-        smooth_model == True
+        smooth_model
     ):  ## smooth the continuum of the spectrum to create a template to fit the data
         smooth_data_fit = savgol_filter(
             np.nan_to_num(data_fit), int(len(data_fit) / 2), 3
@@ -312,7 +310,7 @@ def power_law_stellar_fit(
             wavelenght, A_opt, B_opt, C_opt, D_opt, f1_opt, f2_opt, f3_opt
         )
 
-    if smooth_model == False:
+    if not smooth_model:
 
         def power_law_plus_annular_model(x, A, B, C, d1, d2, d3):
             total_model = (
@@ -388,9 +386,6 @@ def make_plots(dictionary, lines_to_be_flagged, gap_window, x, y):
     plt.close("fig")
     # global fig, ax, ax, cx, wave_um, lines_to_be_flagged, gap_window
     fig = plt.figure(figsize=(12, 8))
-    gs = GridSpec(
-        3, 1, height_ratios=[1, 0.5, 1]
-    )  # The middle subplot will be 1/2 as tall as the others
     fig.subplots_adjust(hspace=0.03)
     # panel with original spectra, and oscillations
     ax = plt.subplot(3, 1, 1)
@@ -459,9 +454,6 @@ def set_plot_panels(wave, lines_to_be_flagged, gap_window):
     plt.close("fig")
     # global fig, ax, ax, cx, wave_um, lines_to_be_flagged, gap_window
     fig = plt.figure(figsize=(12, 8))
-    gs = GridSpec(
-        3, 1, height_ratios=[1, 0.5, 1]
-    )  # The middle subplot will be 1/2 as tall as the others
     fig.subplots_adjust(hspace=0.03)
     nrs_detectors = 2
     if gap_window == 1:
@@ -776,7 +768,7 @@ def loop_for_fit_wiggles(
                     flag_mod[(wave > gap_window[0]) & (wave < gap_window[1])] = (
                         False  # exclude gap
                     )
-                if np.isnan(wave[flag_mod].mean()) == True:
+                if np.isnan(wave[flag_mod].mean()):
                     warnings.filterwarnings(
                         action="ignore", message="Mean of empty slice"
                     )
@@ -979,16 +971,11 @@ def loop_for_fit_wiggles(
         spec_corr = (
             spec - best_wiggle_model
         )  # np.nanmean(final_model, axis=0) # Substract WIGGLE MODEL (COSINE) WITHOUT CONTINUUM
-        min_freq_wiggle, max_frequ_wiggle = (
-            str(np.min(np.round(sorted_f_bins))),
-            str(np.max(np.round(sorted_f_bins))),
-        )  # Get MIN & MAX freuqnecy of Wiggles to display them in the plot
         meam_frequ_wiggle = str(
             np.round(np.nanmedian(sorted_f_bins))
         )  # Get MIN & MAX freuqnecy of Wiggles to display them in the plot
         if (iplotF == 0) & (f_walls == 2):
             ax.legend(loc="upper right", prop={"size": 8}, mode="expand", ncol=3)
-            # bx.text(.05, .93, 'Freq. range wiggles = ' + min_freq_wiggle + ' - ' +max_frequ_wiggle + r' [1/$\mu$]', ha='left', va='top',transform=bx.transAxes, bbox=dict(facecolor='none', edgecolor='red', boxstyle='round,pad=0.4'))
             bx.text(
                 0.05,
                 0.93,
@@ -1076,8 +1063,6 @@ def fitwiggles(
     f0 = self.frequency_prior
     df0i = self.df0i
     bfi = self.bfi
-    con_windows = self.con_windows
-    con_model_order = self.con_model_order
     spec_ref_in = self.spec_ref_in
     spec_ref_out = self.spec_ref_out
     wave = self.wave
@@ -1086,7 +1071,6 @@ def fitwiggles(
         gap_window = self.gap_window
     else:
         gap_window = self.nrs_detectors
-    masked_lines = get_masked_regions(self)
     best_freq_par = self.best_freq_par
     f_walls = 2
     center_spec = "no"
@@ -1155,7 +1139,7 @@ def fitwiggles(
             corrected_spectrum, plot = tasks[i][0].get()
             sorted_lf_bins.append([tasks[i][2], tasks[i][1], corrected_spectrum])
             PLOTS.append(plot)
-        except:
+        except Exception:
             print("could not get a fit. skipping this pixel")
             continue
 

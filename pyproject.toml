@@ -11,7 +11,7 @@ classifiers = [
 ]
 requires-python = ">=3.9"
 dependencies = [
-    "numpy", "mgefit==5.0.15"
+    "numpy", "matplotlib","pandas", "photutils","astropy" , "mgefit==5.0.15"
 ]
 dynamic = ['version']
 
