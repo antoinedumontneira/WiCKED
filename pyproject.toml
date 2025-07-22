@@ -31,3 +31,13 @@ exclude = [
     '*_version.py',
 ]
 # linters: flake8, black, ruff
+
+[tool.ruff]
+line-length = 130
+extend-exclude = ["docs", ".tox", ".eggs", "build", "*_version.py"]
+fix = true
+format = "grouped"
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = []
