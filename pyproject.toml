@@ -9,7 +9,7 @@ classifiers = [
     "License :: OSI Approved :: BSD License",
     "Operating System :: OS Independent",
 ]
-requires-python = ">=3.11"
+requires-python = ">=3.9.23"
 dependencies = [
     "numpy", "matplotlib","pandas", "photutils","astropy" , "mgefit==5.0.15"
 ]
