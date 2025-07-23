@@ -38,7 +38,7 @@ def get_FFT(dt, wave, data):
     return xf, yf
 
 
-def fit_wiggly_spaxels(
+def fourier_wiggle_map(
     freq_range,
     wave,
     data,
@@ -475,7 +475,7 @@ def get_wiggly_pixels(self, radius=10, N_Cores=1, smooth_spectrum="no", do_plots
         results.append(
             (
                 pool.apply_async(
-                    fit_wiggly_spaxels,
+                    fourier_wiggle_map,
                     (
                         freq_range,
                         wave,
@@ -513,7 +513,7 @@ def get_wiggly_pixels(self, radius=10, N_Cores=1, smooth_spectrum="no", do_plots
         maxspecs.append(results[i][5])
         best_models.append(results[i][6])
     if do_plots:
-        fig = plt.figure(figsize=(9, 6))
+        plt.figure(figsize=(9, 6))
         plt.text(
             0.05,
             0.95,
@@ -562,7 +562,7 @@ def define_affected_pixels(self, results, Fourier_ratio=3, save_file=False):
     """
     affected_pixels_mask = results[2] >= Fourier_ratio
     #### ADD OR EXCLUDE PIXELS DEFINE BY THE USE ###
-    if self.add_pixels != None:
+    if self.add_pixels is not None:
         self.add_pixels = np.array(self.add_pixels)
         for ind in range(len(self.add_pixels)):
             new_pix = np.where(
@@ -570,7 +570,7 @@ def define_affected_pixels(self, results, Fourier_ratio=3, save_file=False):
                 & (results[0] == self.add_pixels[ind, 1])
             )[0]
             affected_pixels_mask[new_pix] = True
-    if self.exclude_pixels != None:
+    if self.exclude_pixels is not None:
         self.exclude_pixels = np.array(self.exclude_pixels)
         for ind in range(len(self.exclude_pixels)):
             new_pix = np.where(
@@ -578,8 +578,8 @@ def define_affected_pixels(self, results, Fourier_ratio=3, save_file=False):
                 & (results[0] == self.exclude_pixels[ind, 1])
             )[0]
             affected_pixels_mask[new_pix] = False
-    fig = plt.figure(figsize=(7, 7))
-    im = plt.scatter(results[1], results[0], c=affected_pixels_mask, s=100, marker="s")
+    plt.figure(figsize=(7, 7))
+    plt.scatter(results[1], results[0], c=affected_pixels_mask, s=100, marker="s")
     plt.scatter(self.nuc_x, self.nuc_y, marker="X", s=30, color="red")
     plt.scatter(0, 0, marker="s", s=100, color="yellow", label="Affected Pixels")
     plt.title("PIXELS AFFECTED FOR WIGGLES")
@@ -688,7 +688,7 @@ def plot_wiggle_FFT(self, X, Y, smooth_spectrum):
             None,
             self.smooth_model,
         )
-    sigma_ratio = fit_wiggly_spaxels(
+    sigma_ratio = fourier_wiggle_map(
         freq_range,
         self.wave,
         spec,

@@ -133,20 +133,20 @@ class WICKED:
         )
         try:
             peaks = np.concatenate([peaks_em, peaks_abs])
-        except:
+        except Exception:
             if peaks_em.length != 0:
                 peaks = peaks_em
             else:
                 peaks = peaks_abs
         ## the file linefeatures_vac.dat cointains the list of transitions that will be masked during the fit
         linefeatures = self.linefeatures
-        if linefeatures != None:
+        if linefeatures is not None:
             list_em_lines = pd.read_csv(linefeatures, sep=" ", header=None)[0].values
             self.list_em_lines = (
                 list_em_lines * (1 + self.redshift) / 1.0e4
             )  # obs-frame in micron
             self.list_em_lines = np.append(self.list_em_lines, self.wave[peaks])
-        if linefeatures == None:
+        if linefeatures is None:
             self.list_em_lines = self.wave[peaks]
         self.lines_to_be_flagged = [[]] * len(self.list_em_lines)
         for i in range(len(self.list_em_lines)):
@@ -155,7 +155,7 @@ class WICKED:
                 self.list_em_lines[i] * (1 + self.DV / c),
             ]
 
-        if do_plots == True:
+        if do_plots:
             fig2 = plt.figure(figsize=(7, 7))
             zx1 = fig2.add_subplot(1, 1, 1)
             if len(peaks):
@@ -176,13 +176,11 @@ class WICKED:
             plt.show(block=False)
         return
 
-    def get_center(self, do_plots=False):
+    def find_center(self, do_plots=False):
         """Code to find the brightes x,y coordinates of the brightest pixels in tbe data cube."""
         # Find the center of the galaxy
         signal = np.zeros((np.shape(self.cube)[1], np.shape(self.cube)[2]))
         noise = np.zeros((np.shape(self.cube)[1], np.shape(self.cube)[2]))
-        minlambda = min(self.wave)
-        maxlambda = max(self.wave)
         for k in range(8, np.shape(self.cube)[1] - 8):
             for l in range(8, np.shape(self.cube)[2] - 8):
                 if self.nrs_detectors == 2:
@@ -195,7 +193,7 @@ class WICKED:
                 noise[k, l] = sigma
         xcen, ycen = centroid_quadratic(signal)
         self.nuc_x, self.nuc_y = round(xcen), round(ycen)
-        if do_plots == True:
+        if do_plots:
             fig = plt.figure(figsize=(7, 7))
             zx0 = fig.add_subplot(1, 1, 1)
             zx0.imshow(signal, origin="lower", cmap="Reds")
@@ -214,21 +212,22 @@ class WICKED:
         print("\n Center is  x, y = ", self.nuc_x, self.nuc_y)
         return
 
-    def get_reference_spectrum(
+    def setup_templates(
         self, in_radius=2, out_radius=4, nuc_x=None, nuc_y=None, do_plots=False
     ):
-        """This code returns the integrated spectrum over a radii = nuc_r in pixels.
+        """This code returns the aperture and annular spectrum over a radii = nuc_r in pixels.
 
         Args:
             nuc_x (int): X coordinate of the center of the cube. in pixel coordinates.
             nuc_y (int): Y coordinate of the center of the cube. in pixel coordinates.
-            nuc_r (int): radius for aperture extraction.
+            in_radius (int): radius for aperture extraction. Default is 2 pixels.
+            out_radius (int): radius for annular extraction. Default is 4 pixels.
         """
-        if (nuc_x == None) & (nuc_y == None):
+        if (nuc_x is None) & (nuc_y is None):
             try:
                 nuc_y = self.nuc_y
                 nuc_x = self.nuc_x
-            except:
+            except Exception:
                 print("WARNING!!!! : NO PIXELS PROVIDED FOR THE CENTER! ")
         global k
         self.con_windows = np.full((len(self.wave)), False)
@@ -297,7 +296,7 @@ class WICKED:
         spec_ref_in = spec_ref_in / maxspec_ref_in
         spec_ref_out = spec_ref_out / maxspec_ref_out
 
-        if do_plots == True:
+        if do_plots:
             fig2 = plt.figure(figsize=(10, 7))
             zx1 = fig2.add_subplot(1, 1, 1)
             zx1.plot(self.wave, self.con_windows, linewidth=5, label="continuum window")
@@ -358,7 +357,7 @@ class WICKED:
     ##########################################
 
     # this is the function used to model the wiggles in 1d spectra.
-    def FitWigglesCentralPixel(self, nuc_x=None, nuc_y=None, N_rep=30, iplotF=0):
+    def clean_central_spaxel(self, nuc_x=None, nuc_y=None, N_rep=30, iplotF=0):
         """_summary_
 
         Args:
@@ -386,7 +385,7 @@ class WICKED:
         else:
             gap_window = self.nrs_detectors
         masked_lines = get_masked_regions(self)
-        if nuc_y == None:
+        if nuc_y is None:
             nuc_y, nuc_x = self.nuc_y, self.nuc_x
         #############################################################################
         #### START THE FITTING FOR CENTRAL PIXEL, TO DEFINE THE FREQUENCY TREND #####
