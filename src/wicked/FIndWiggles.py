@@ -38,7 +38,7 @@ def get_FFT(dt, wave, data):
     return xf, yf
 
 
-def fourier_wiggle_map(
+def fourier_ratio_spaxel(
     freq_range,
     wave,
     data,
@@ -326,7 +326,9 @@ def fourier_wiggle_map(
         return 0.1  ##### IF FIT FAILED, RETURN A SMALL NUMBER I.E NO WIGGLES IS ASSUMED
 
 
-def get_wiggly_pixels(self, radius=10, N_Cores=1, smooth_spectrum="no", do_plots=False):
+def fourier_wiggle_map(
+    self, radius=10, N_Cores=1, smooth_spectrum="no", do_plots=False
+):
     """Main function for finding wiggly spaxels. This function defines the number of Cores for the parallelization
     and passes the wavelenght, spectrum, reference spectrum and masked regions to the functions above.
 
@@ -475,7 +477,7 @@ def get_wiggly_pixels(self, radius=10, N_Cores=1, smooth_spectrum="no", do_plots
         results.append(
             (
                 pool.apply_async(
-                    fourier_wiggle_map,
+                    fourier_ratio_spaxel,
                     (
                         freq_range,
                         wave,
@@ -612,7 +614,7 @@ def define_affected_pixels(self, results, Fourier_ratio=3, save_file=False):
     return affected_pixels_array
 
 
-def plot_wiggle_FFT(self, X, Y, smooth_spectrum):
+def inspect_spaxel_fft(self, X, Y, smooth_spectrum):
     """Quick plot of the Fourier tranform for the a single pixel. This can help determine if the user wants to add a not flagged pixel,etc.
 
     Args:
@@ -688,7 +690,7 @@ def plot_wiggle_FFT(self, X, Y, smooth_spectrum):
             None,
             self.smooth_model,
         )
-    sigma_ratio = fourier_wiggle_map(
+    sigma_ratio = fourier_ratio_spaxel(
         freq_range,
         self.wave,
         spec,
