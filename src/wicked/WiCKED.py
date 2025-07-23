@@ -7,14 +7,15 @@ import numpy as np
 import pandas as pd
 from astropy import constants as k
 from astropy.io import fits
-from FitWiggles import (
+from photutils.centroids import centroid_quadratic
+from scipy.signal import find_peaks_cwt  #  peak finder
+
+from wicked.FitWiggles import (
     costume_sigmaclip,
     get_masked_regions,
     loop_for_fit_wiggles,
     power_law_stellar_fit,
 )
-from photutils.centroids import centroid_quadratic
-from scipy.signal import find_peaks_cwt  #  peak finder
 
 
 class WICKED:

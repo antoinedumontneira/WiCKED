@@ -4,16 +4,17 @@ import sys
 
 import matplotlib.pyplot as plt
 import numpy as np
-from FitWiggles import (
-    costume_sigmaclip,
-    get_masked_regions,
-    power_law_stellar_fit,
-)
 from scipy.fft import (  # Fourier Transform to fin spaxels affected by wiggles
     fft,
     fftfreq,
 )
 from scipy.signal import savgol_filter
+
+from wicked.FitWiggles import (
+    costume_sigmaclip,
+    get_masked_regions,
+    power_law_stellar_fit,
+)
 
 ####################
 ### FUNCTIONS TO FIND PIXELS AFFECTED BY WIGGLES
