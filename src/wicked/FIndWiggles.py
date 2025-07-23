@@ -534,7 +534,8 @@ def fourier_wiggle_map(
             cmap="cool",
         )
         plt.scatter(self.nuc_x, self.nuc_y, marker="X", s=30, color="yellow")
-        plt.colorbar(im, label="Fourier Ratio")
+        plt.colorbar(im, label="Fourier Ratio", spacing="proportional")
+        plt.clim(np.nanmedian(ima_wiggles), np.nanmax(ima_wiggles))
         plt.xlabel("X PIXEL", fontsize=15)
         plt.ylabel("Y PIXEL", fontsize=15)
 
