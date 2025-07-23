@@ -1033,7 +1033,7 @@ def loop_for_fit_wiggles(
     return
 
 
-def fitwiggles(
+def clean_spaxels(
     self,
     affected_pixels,
     nuc_y=None,
