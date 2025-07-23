@@ -705,7 +705,7 @@ def loop_for_fit_wiggles(
                 np.mean(np.diff(combined_peaks)) * (wave[1] - wave[0])
             )  ### FREQ Prior based on the average distance between peaks.
         if f_walls == 0:
-            print("Freq. prior of wiggles = {:.1f} [1/mu]".format(f0))
+            print(r"Freq. prior of wiggles = {:.1f} [1/$\mu$m]".format(f0))
         # repeat the fit for N_rep to increase the quality...
         for iN in range(N_rep):
             l_bins = []
