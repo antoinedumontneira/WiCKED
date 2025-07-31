@@ -9,42 +9,13 @@ The Moire pattern can be modeled as a series of different sinusoidal waves. WiCK
 To flag pixels affected by wiggles in the datacube, WiCKED calculates the Fourier Transfrom for the residual between the best-fit and the single-pixel spectrum and compares the mean amplitude at frequency were wiggles dominate (tipically f < 50 [1/micron]) and at longer wavelenghts. Pixels with a larger ratio between these two windows are flagged. The typical frequency of the wiggles is calculated based on the wiggles of the brightest pixel. 
 
 ## Usage Examples
-Detailed examples on how to use WICKED are shown in the jupyter notebooks. Here's a basic example of how to use WICKED:
-from wicked import Wicked
- ```
-#### Initialize the WICKED corrector
-run WiCKED.py
-corrector = Wicked(Object_name=sourcename,pathcube,cube_name,redshift=z)
-
-#### Get center and integrated spectrum templates
-corrector.get_center(do_plots=True)
-corrector.get_reference_spectrum(do_plots=True)
-
-### Fit Central Pixel
-corrector.FitWigglesCentralPixel()
-### Flag single pixels affected by wiggles
-from FIndWiggles import get_wiggly_pixels,define_affected_pixels
-
-results = get_wiggly_pixels(corrector, N_Cores=NUMBER_OF_CPU,do_plots=True)
-affected_pixels = define_affected_pixels(corrector,results)
-
-#### Apply the wiggle correction to flagged pixels
-from FitWiggles import FitWiggles
-FitWiggles(corrector,affected_pixels,N_Cores=NUMBER_OF_CPU,do_plots=True)
-#### DATA IS SAVED IN SAME FOLDER AS DATACUBE WITH THE _wicked.fits EXTENSION
-
-```
-
-
-## Features
-- **Accurate Moire Pattern Correction**: Models and removes sinusoidal wiggles from NIRSpec IFS data.
-- **Integrated Spectrum Templates**: Utilizes spectrum templates and power-laws for precise modeling.
-- **Single-Pixel Spectrum Fitting**: Fits residuals with a series of sinusoidal waves for enhanced accuracy.
+A Detailed example on how to use WICKED is shown in the [example notebook](https://github.com/antoinedumontneira/WiCKED/blob/dev/Examples/Example_notebook.ipynb) in the Example folder.
 
 ## Installation
-To install WICKED, clone the repository on you local folder. There is no installation required for WiCKED, and example jupyter notebooks are also attached to the github repository showing how to run it. 
+To install WICKED, you can pip install the repository on you local folder. There is no installation required for WiCKED.
 
-git clone https://github.com/antoinedumontneira/WiCKED.git
+
+pip install git+https://github.com/antoinedumontneira/WiCKED.git
 
 ## Dependencies
 WICKED requires the following Python libraries:
@@ -54,7 +25,7 @@ WICKED requires the following Python libraries:
 - photutils
 - astropy
 
-**WICKED** uses the  Michelle Cappellari version of the **mpfit** library included in the **mgefit** version 5.0.15 available for installation  [HERE!](https://pypi.org/project/mgefit/5.0.15/#files). **WICKED** does not require installation the full installation of the mgefit library but only the `cap_mpfit` file, which must be in the same working directory as WICKED or included in the `PYTHONPATH`.
+**WICKED** uses the  Michelle Cappellari version of the **mpfit** library included in the **mgefit** version 5.0.15 available for installation  [HERE!](https://pypi.org/project/mgefit/5.0.15/#files). **WICKED** will automatically install mgefit 5.0.15 in the enviroment
 
 ## Credits
 
