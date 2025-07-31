@@ -15,7 +15,7 @@ A Detailed example on how to use WICKED is shown in the [example notebook](https
 To install WICKED, you can pip install the repository on you local folder. There is no installation required for WiCKED.
 
 
-pip install git+https://github.com/antoinedumontneira/WiCKED.git
+pip install git+https://github.com/antoinedumontneira/WiCKED@main
 
 ## Dependencies
 WICKED requires the following Python libraries:
