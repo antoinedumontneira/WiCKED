@@ -176,41 +176,49 @@ class WICKED:
             plt.show(block=False)
         return
 
-    def find_center(self, do_plots=False):
-        """Code to find the brightes x,y coordinates of the brightest pixels in tbe data cube."""
-        # Find the center of the galaxy
+    def get_center(self,edge_pad = 8, do_plots=False):
+        """ Code to find the brightes x,y coordinates of the brightest pixels in tbe data cube.
+        Args:
+            edge_pad (int, optional): umber of pixels to exclude from the edges when finding the center. 
+        Sometimes the edges are noisy and can bias the center finding. Defaults to 8.
+            do_plots (bool, optional): _description_. Defaults to False.
+        """
+        #Find the center of the galaxy
         signal = np.zeros((np.shape(self.cube)[1], np.shape(self.cube)[2]))
         noise = np.zeros((np.shape(self.cube)[1], np.shape(self.cube)[2]))
-        for k in range(8, np.shape(self.cube)[1] - 8):
-            for l in range(8, np.shape(self.cube)[2] - 8):
+        minlambda = min(self.wave)
+        maxlambda = max(self.wave)
+        # number of edge pixels to exclude when finding the center (rename of 'pad' for clarity)
+        ny = self.cube.shape[1]
+        nx = self.cube.shape[2]
+        start_y = int(np.clip(edge_pad, 0, ny))
+        end_y = int(np.clip(ny - edge_pad, 0, ny))
+        start_x = int(np.clip(edge_pad, 0, nx))
+        end_x = int(np.clip(nx - edge_pad, 0, nx))
+
+        for iy in range(start_y, end_y):
+            for jx in range(start_x, end_x):
                 if self.nrs_detectors == 2:
-                    uspec = np.nan_to_num(self.cube[self.gap_mask, k, l])
+                    uspec = np.nan_to_num(self.cube[self.gap_mask, iy, jx])
                 else:
-                    uspec = np.nan_to_num(self.cube[:, k, l])
+                    uspec = np.nan_to_num(self.cube[:, iy, jx])
                 uspec = costume_sigmaclip(self.wave, uspec)
                 mean, sigma, subs = meanclip(uspec, clipsig=3, returnSubs=True)
-                signal[k, l] = mean
-                noise[k, l] = sigma
+                signal[iy, jx] = mean
+                noise[iy, jx] = sigma
         xcen, ycen = centroid_quadratic(signal)
         self.nuc_x, self.nuc_y = round(xcen), round(ycen)
-        if do_plots:
-            fig = plt.figure(figsize=(7, 7))
-            zx0 = fig.add_subplot(1, 1, 1)
-            zx0.imshow(signal, origin="lower", cmap="Reds")
-            zx0.plot(
-                self.nuc_x,
-                self.nuc_y,
-                c="yellow",
-                marker="X",
-                markersize=10,
-                label="Best-fit center",
-            )
+        if do_plots==True:
+            fig = plt.figure(figsize=(7,7))
+            zx0 = fig.add_subplot(1,1,1) 
+            zx0.imshow(signal, origin = 'lower',cmap="Reds")
+            zx0.plot(self.nuc_x,self.nuc_y,c="yellow",marker='X',markersize=10,label='Best-fit center')
             zx0.set_xlabel("X [offset]")
             zx0.set_ylabel("Y [offset]")
             zx0.legend()
             plt.show(block=False)
-        print("\n Center is  x, y = ", self.nuc_x, self.nuc_y)
-        return
+        print( '\n Center is  x, y = ', self.nuc_x, self.nuc_y)
+        return  
 
     def setup_templates(
         self, in_radius=2, out_radius=4, nuc_x=None, nuc_y=None, do_plots=False
